@@ -100,7 +100,7 @@ psql_inspect_planned_type(mrb_state *mrb, mrb_value self)
     PlannedStmt *stmt;
 
     stmt = (PlannedStmt *)DATA_PTR(self);
-    return mrb_fixnum_value(stmt->type);
+    return psql_inspect_mrb_str_from_NodeTag(mrb, stmt->type);
 }
 
 static mrb_value
