@@ -106,16 +106,20 @@ _PG_fini(void)
 {
     fprintf(stderr, "psql_inspect is unloaded!\n");
 
+    /* set_rel_pathlist_hook */
+    if (set_rel_pathlist_hook == psql_inspect_set_rel_pathlist_hook) {
+        set_rel_pathlist_hook = prev_set_rel_pathlist_hook;
+    }
+
+    /* planner_hook */
     if (planner_hook == psql_inspect_planner_hook) {
+        planner_hook = prev_planner_hook;
+    }
+
+    if (mrb_s != NULL) {
         psql_inspect_planned_stmt_fini(mrb_s);
 
         mrb_close(mrb_s);
         mrb_s = NULL;
-
-        /* planner_hook */
-        planner_hook = prev_planner_hook;
-
-        /* set_rel_pathlist_hook */
-        set_rel_pathlist_hook = prev_set_rel_pathlist_hook;
     }
 }
