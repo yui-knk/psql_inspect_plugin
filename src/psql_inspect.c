@@ -60,7 +60,7 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
     script = psql_inspect_get_script();
 
     if (script == NULL) {
-        elog(WARNING, "You should set \"psql_inspect.script\"");
+        elog(WARNING, "You should set \"%s\"", script_guc_name);
         return stmt;
     }
 
