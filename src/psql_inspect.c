@@ -51,7 +51,6 @@ psql_inspect_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
     script = psql_inspect_get_script();
 
     if (script == NULL) {
-        /* TODO: Warning */
         elog(WARNING, "You should set \"psql_inspect.script\"");
         return stmt;
     }
