@@ -1,23 +1,23 @@
 P_INSPECT_ROOT=$(shell pwd)/..
 MRUBY_ROOT=$(P_INSPECT_ROOT)/mruby
 SRC_DIR=$(P_INSPECT_ROOT)/src
+INCLUDE_DIR=$(P_INSPECT_ROOT)/include
 
 RAKE=rake
 
-SRCS=$(SRC_DIR)/psql_inspect.c
 MRUBY_INCLUDE=$(MRUBY_ROOT)/include
 MRUBY_LIB=$(MRUBY_ROOT)/build/host/lib
 
 # pg specific
 MODULE_big=psql_inspect
-OBJS=psql_inspect.o
+OBJS=psql_inspect_nodes.o psql_inspect.o
 PG_CONFIG=pg_config
 SHLIB_LINK=-L$(MRUBY_LIB) -lmruby
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 
 include $(PGXS)
 
-override CPPFLAGS := -I$(MRUBY_INCLUDE) $(CPPFLAGS)
+override CPPFLAGS := -I$(MRUBY_INCLUDE) -I$(INCLUDE_DIR) $(CPPFLAGS)
 
 .PHONY: build_mruby
 

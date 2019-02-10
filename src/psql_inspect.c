@@ -9,6 +9,8 @@
 #include <mruby/data.h>
 #include <mruby/variable.h>
 
+#include <psql_inspect_nodes.h>
+
 PG_MODULE_MAGIC;
 
 void _PG_init(void);
@@ -67,6 +69,7 @@ psql_inspect_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 
     mrb_load_string(mrb_s, script);
     psql_inspect_mruby_env_tear_down(mrb_s);
+    /* TODO: Handling mruby exception */
 
     return stmt;
 }
@@ -106,7 +109,7 @@ psql_inspect_planned_command_type(mrb_state *mrb, mrb_value self)
     PlannedStmt *stmt;
 
     stmt = (PlannedStmt *)DATA_PTR(self);
-    return mrb_fixnum_value(stmt->commandType);
+    return psql_inspect_mrb_str_from_CmdType(mrb, stmt->commandType);
 }
 
 static void
