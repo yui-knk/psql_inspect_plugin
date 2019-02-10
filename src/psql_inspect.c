@@ -1,4 +1,6 @@
 #include "postgres.h"
+#include "optimizer/paths.h"
+#include "optimizer/planner.h"
 #include "utils/guc.h"
 #include "utils/elog.h"
 
@@ -13,6 +15,7 @@ void _PG_init(void);
 void _PG_fini(void);
 
 static planner_hook_type prev_planner_hook = NULL;
+static set_rel_pathlist_hook_type prev_set_rel_pathlist_hook = NULL;
 
 static mrb_state *mrb_s = NULL;
 
@@ -37,6 +40,12 @@ static char *
 psql_inspect_get_script(void)
 {
     return GetConfigOptionByName(script_guc_name, NULL, true);
+}
+
+static void
+psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti, RangeTblEntry *rte)
+{
+    fprintf(stderr, "psql_inspect_set_rel_pathlist_hook with mruby!\n");
 }
 
 static PlannedStmt *
@@ -83,8 +92,13 @@ _PG_init(void)
     mrb_s = mrb_open();
     psql_inspect_class_init(mrb_s);
 
+    /* planner_hook */
     prev_planner_hook = planner_hook;
     planner_hook = psql_inspect_planner;
+
+    /* set_rel_pathlist_hook */
+    prev_set_rel_pathlist_hook = set_rel_pathlist_hook;
+    set_rel_pathlist_hook = psql_inspect_set_rel_pathlist_hook;
 }
 
 void
@@ -97,6 +111,11 @@ _PG_fini(void)
 
         mrb_close(mrb_s);
         mrb_s = NULL;
+
+        /* planner_hook */
         planner_hook = prev_planner_hook;
+
+        /* set_rel_pathlist_hook */
+        set_rel_pathlist_hook = prev_set_rel_pathlist_hook;
     }
 }

@@ -2,7 +2,6 @@
 #define PSQL_INSPECT_PLANNED_STMT_H
 
 #include "postgres.h"
-#include "optimizer/planner.h"
 
 #include <mruby.h>
 
