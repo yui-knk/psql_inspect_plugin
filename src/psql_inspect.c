@@ -66,7 +66,6 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
 
     fprintf(stderr, "psql_inspect_planner_hook with mruby!\n");
 
-    psql_inspect_mruby_env_setup(mrb_s, stmt);
     script = psql_inspect_get_script(planner_script_guc_name);
 
     if (script == NULL) {
@@ -74,6 +73,7 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
         return stmt;
     }
 
+    psql_inspect_mruby_env_setup(mrb_s, stmt);
     mrb_load_string(mrb_s, script);
     psql_inspect_mruby_env_tear_down(mrb_s);
     /* TODO: Handling mruby exception */
