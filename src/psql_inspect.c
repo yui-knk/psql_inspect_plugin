@@ -49,12 +49,12 @@ psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti
 }
 
 static PlannedStmt *
-psql_inspect_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
+psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundParams)
 {
     const char *script;
     PlannedStmt *stmt = standard_planner(parse, cursorOptions, boundParams);
 
-    fprintf(stderr, "psql_inspect_planner with mruby!\n");
+    fprintf(stderr, "psql_inspect_planner_hook with mruby!\n");
 
     psql_inspect_mruby_env_setup(mrb_s, stmt);
     script = psql_inspect_get_script();
@@ -94,7 +94,7 @@ _PG_init(void)
 
     /* planner_hook */
     prev_planner_hook = planner_hook;
-    planner_hook = psql_inspect_planner;
+    planner_hook = psql_inspect_planner_hook;
 
     /* set_rel_pathlist_hook */
     prev_set_rel_pathlist_hook = set_rel_pathlist_hook;
@@ -106,7 +106,7 @@ _PG_fini(void)
 {
     fprintf(stderr, "psql_inspect is unloaded!\n");
 
-    if (planner_hook == psql_inspect_planner) {
+    if (planner_hook == psql_inspect_planner_hook) {
         psql_inspect_planned_stmt_fini(mrb_s);
 
         mrb_close(mrb_s);
