@@ -19,7 +19,7 @@ static set_rel_pathlist_hook_type prev_set_rel_pathlist_hook = NULL;
 
 static mrb_state *mrb_s = NULL;
 
-static const char *script_guc_name = "psql_inspect.script";
+static const char *planner_script_guc_name = "psql_inspect.planner_script";
 
 // static const char *script = "p [PgInspect::PlannedStmt.current_stmt.type, PgInspect::PlannedStmt.current_stmt.command_type]";
 
@@ -39,7 +39,7 @@ psql_inspect_mruby_env_tear_down(mrb_state *mrb)
 static char *
 psql_inspect_get_script(void)
 {
-    return GetConfigOptionByName(script_guc_name, NULL, true);
+    return GetConfigOptionByName(planner_script_guc_name, NULL, true);
 }
 
 static void
@@ -60,7 +60,7 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
     script = psql_inspect_get_script();
 
     if (script == NULL) {
-        elog(WARNING, "You should set \"%s\"", script_guc_name);
+        elog(WARNING, "You should set \"%s\"", planner_script_guc_name);
         return stmt;
     }
 
