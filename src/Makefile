@@ -10,7 +10,7 @@ MRUBY_LIB=$(MRUBY_ROOT)/build/host/lib
 
 # pg specific
 MODULE_big=psql_inspect
-OBJS=psql_inspect_nodes.o psql_inspect.o
+OBJS=psql_inspect_nodes.o psql_inspect_planned_stmt.o psql_inspect.o
 PG_CONFIG=pg_config
 SHLIB_LINK=-L$(MRUBY_LIB) -lmruby
 PGXS := $(shell $(PG_CONFIG) --pgxs)
