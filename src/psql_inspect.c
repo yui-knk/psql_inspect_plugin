@@ -62,8 +62,8 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
 
     psql_inspect_planned_stmt_mruby_env_setup(mrb_s, stmt);
     mrb_load_string(mrb_s, script);
-    psql_inspect_planned_stmt_mruby_env_tear_down(mrb_s);
     /* TODO: Handling mruby exception */
+    psql_inspect_planned_stmt_mruby_env_tear_down(mrb_s);
 
     return stmt;
 }
