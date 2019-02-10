@@ -24,19 +24,6 @@ static const char *set_rel_pathlist_script_guc_name = "psql_inspect.set_rel_path
 
 // static const char *script = "p [PgInspect::PlannedStmt.current_stmt.type, PgInspect::PlannedStmt.current_stmt.command_type]";
 
-/* Setup pg related object. */
-static void
-psql_inspect_mruby_env_setup(mrb_state *mrb, PlannedStmt *stmt)
-{
-    psql_inspect_planned_stmt_mruby_env_setup(mrb, stmt);
-}
-
-static void
-psql_inspect_mruby_env_tear_down(mrb_state *mrb)
-{
-    psql_inspect_planned_stmt_mruby_env_tear_down(mrb);
-}
-
 static char *
 psql_inspect_get_script(const char *script_guc_name)
 {
@@ -73,9 +60,9 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
         return stmt;
     }
 
-    psql_inspect_mruby_env_setup(mrb_s, stmt);
+    psql_inspect_planned_stmt_mruby_env_setup(mrb_s, stmt);
     mrb_load_string(mrb_s, script);
-    psql_inspect_mruby_env_tear_down(mrb_s);
+    psql_inspect_planned_stmt_mruby_env_tear_down(mrb_s);
     /* TODO: Handling mruby exception */
 
     return stmt;
