@@ -10,7 +10,7 @@
 #include <psql_inspect_planned_stmt.h>
 
 static struct RClass *class_stmt = NULL;
-static const struct mrb_data_type psql_inspect_planned_stmt_type = { "PlannedStmt", mrb_free };
+static const struct mrb_data_type psql_inspect_planned_stmt_data_type = { "PlannedStmt", mrb_free };
 
 static void
 psql_inspect_planned_stmt_set_planned_stmt(mrb_state *mrb, mrb_value self, PlannedStmt *stmt)
@@ -28,13 +28,13 @@ psql_inspect_c_current_stmt(mrb_state *mrb, mrb_value klass)
 static mrb_value
 psql_inspect_planned_stmt_init(mrb_state *mrb, mrb_value self)
 {
-    DATA_TYPE(self) = &psql_inspect_planned_stmt_type;
+    DATA_TYPE(self) = &psql_inspect_planned_stmt_data_type;
 
     return self;
 }
 
 static mrb_value
-psql_inspect_planned_type(mrb_state *mrb, mrb_value self)
+psql_inspect_planned_stmt_type(mrb_state *mrb, mrb_value self)
 {
     PlannedStmt *stmt;
 
@@ -43,7 +43,7 @@ psql_inspect_planned_type(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-psql_inspect_planned_command_type(mrb_state *mrb, mrb_value self)
+psql_inspect_planned_stmt_command_type(mrb_state *mrb, mrb_value self)
 {
     PlannedStmt *stmt;
 
@@ -80,6 +80,6 @@ psql_inspect_planned_stmt_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_class_method(mrb, class_stmt, "current_stmt", psql_inspect_c_current_stmt, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "initialize", psql_inspect_planned_stmt_init, MRB_ARGS_NONE());
-    mrb_define_method(mrb, class_stmt, "type", psql_inspect_planned_type, MRB_ARGS_NONE());
-    mrb_define_method(mrb, class_stmt, "command_type", psql_inspect_planned_command_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, class_stmt, "type", psql_inspect_planned_stmt_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, class_stmt, "command_type", psql_inspect_planned_stmt_command_type, MRB_ARGS_NONE());
 }
