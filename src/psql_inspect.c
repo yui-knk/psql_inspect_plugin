@@ -7,6 +7,7 @@
 #include <mruby.h>
 #include <mruby/compile.h>
 
+#include <psql_inspect_planner_info.h>
 #include <psql_inspect_planned_stmt.h>
 
 PG_MODULE_MAGIC;
@@ -43,6 +44,11 @@ psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti
         elog(WARNING, "You should set \"%s\"", set_rel_pathlist_script_guc_name);
         return;
     }
+
+    psql_inspect_planner_info_mruby_env_setup(mrb_s, root);
+    mrb_load_string(mrb_s, script);
+    /* TODO: Handling mruby exception */
+    psql_inspect_planner_info_mruby_env_tear_down(mrb_s);
 }
 
 static PlannedStmt *
@@ -76,6 +82,7 @@ psql_inspect_class_init(mrb_state *mrb)
     class = mrb_define_class(mrb, "PgInspect", mrb->object_class);
 
     psql_inspect_planned_stmt_class_init(mrb, class);
+    psql_inspect_planner_info_class_init(mrb, class);
 }
 
 /*
@@ -115,6 +122,7 @@ _PG_fini(void)
 
     if (mrb_s != NULL) {
         psql_inspect_planned_stmt_fini(mrb_s);
+        psql_inspect_planner_info_fini(mrb_s);
 
         mrb_close(mrb_s);
         mrb_s = NULL;
