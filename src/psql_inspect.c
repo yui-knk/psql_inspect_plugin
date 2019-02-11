@@ -7,8 +7,9 @@
 #include <mruby.h>
 #include <mruby/compile.h>
 
-#include <psql_inspect_planner_info.h>
 #include <psql_inspect_planned_stmt.h>
+#include <psql_inspect_planner_info.h>
+#include <psql_inspect_rel_opt_info.h>
 
 PG_MODULE_MAGIC;
 
@@ -83,6 +84,7 @@ psql_inspect_class_init(mrb_state *mrb)
 
     psql_inspect_planned_stmt_class_init(mrb, class);
     psql_inspect_planner_info_class_init(mrb, class);
+    psql_inspect_rel_opt_info_class_init(mrb, class);
 }
 
 /*

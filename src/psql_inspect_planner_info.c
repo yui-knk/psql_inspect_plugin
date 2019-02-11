@@ -2,15 +2,17 @@
 #include "nodes/relation.h"
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
 
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_planner_info.h>
+#include <psql_inspect_rel_opt_info.h>
 
 static struct RClass *planner_info = NULL;
-static const struct mrb_data_type psql_inspect_planner_info_type = { "PlannerInfo", mrb_free };
+static const struct mrb_data_type psql_inspect_planner_info_data_type = { "PlannerInfo", mrb_free };
 
 static void
 psql_inspect_planner_info_set_planner_info(mrb_state *mrb, mrb_value self, PlannerInfo *root)
@@ -27,18 +29,51 @@ psql_inspect_c_current_planner_info(mrb_state *mrb, mrb_value klass)
 static mrb_value
 psql_inspect_planner_info_init(mrb_state *mrb, mrb_value self)
 {
-    DATA_TYPE(self) = &psql_inspect_planner_info_type;
+    DATA_TYPE(self) = &psql_inspect_planner_info_data_type;
 
     return self;
 }
 
 static mrb_value
-psql_inspect_planned_type(mrb_state *mrb, mrb_value self)
+psql_inspect_planner_info_type(mrb_state *mrb, mrb_value self)
 {
     PlannerInfo *root;
 
     root = (PlannerInfo *)DATA_PTR(self);
     return psql_inspect_mrb_str_from_NodeTag(mrb, root->type);
+}
+
+static mrb_value
+psql_inspect_planner_info_simple_rel_array(mrb_state *mrb, mrb_value self)
+{
+    PlannerInfo *root;
+    int array_size, i;
+    mrb_value ary;
+
+    root = (PlannerInfo *)DATA_PTR(self);
+    array_size = root->simple_rel_array_size;
+
+    if (array_size == 0) {
+        return mrb_ary_new(mrb);
+    }
+
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    for (i = 0; i < array_size; i++) {
+        RelOptInfo *rel = root->simple_rel_array[i];
+
+        /* there may be empty slots corresponding to non-baserel RTEs */
+        if (rel == NULL) {
+            mrb_ary_set(mrb, ary, i, mrb_nil_value());
+        } else {
+            mrb_value v;
+
+            v = psql_inspect_rel_opt_info_build_from_rel_opt_info(mrb, rel);
+            mrb_ary_set(mrb, ary, i, v);
+        }
+    }
+
+    return ary;
 }
 
 void
@@ -70,5 +105,6 @@ psql_inspect_planner_info_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_class_method(mrb, planner_info, "current_planner_info", psql_inspect_c_current_planner_info, MRB_ARGS_NONE());
     mrb_define_method(mrb, planner_info, "initialize", psql_inspect_planner_info_init, MRB_ARGS_NONE());
-    mrb_define_method(mrb, planner_info, "type", psql_inspect_planned_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, planner_info, "type", psql_inspect_planner_info_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, planner_info, "simple_rel_array", psql_inspect_planner_info_simple_rel_array, MRB_ARGS_NONE());
 }
