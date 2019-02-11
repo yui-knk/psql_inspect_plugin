@@ -6,6 +6,7 @@
 
 #include <mruby.h>
 #include <mruby/compile.h>
+#include <mruby/string.h>
 
 #include <psql_inspect_path.h>
 #include <psql_inspect_path_key.h>
@@ -49,8 +50,23 @@ psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti
     }
 
     psql_inspect_planner_info_mruby_env_setup(mrb_s, root);
+
+    /* TODO: Is using mrb_rescue better? We can not touch original error in mrb_rescue */
     mrb_load_string(mrb_s, script);
-    /* TODO: Handling mruby exception */
+
+    if (mrb_s->exc != NULL) {
+        mrb_value msg;
+        msg = mrb_funcall(mrb_s, mrb_obj_value(mrb_s->exc), "message", 0, NULL);
+
+        if (mrb_string_p(msg)) {
+            elog(WARNING, "Error is raised in mruby \"%s\"", mrb_string_value_ptr(mrb_s, msg));
+        } else {
+            elog(WARNING, "Some error is raised in mruby but can not detect it...");
+        }
+
+        mrb_s->exc = NULL;
+    }
+
     psql_inspect_planner_info_mruby_env_tear_down(mrb_s);
 }
 
