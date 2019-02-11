@@ -10,4 +10,4 @@ void psql_inspect_planned_stmt_mruby_env_tear_down(mrb_state *mrb);
 void psql_inspect_planned_stmt_fini(mrb_state *mrb);
 void psql_inspect_planned_stmt_class_init(mrb_state *mrb, struct RClass *class);
 
-#endif  /* PSQL_INSPECT_NODPLANNED_STMT*/
+#endif  /* PSQL_INSPECT_PLANNED_STMT_H */
