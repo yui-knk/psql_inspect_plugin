@@ -11,4 +11,4 @@ void psql_inspect_planner_info_mruby_env_tear_down(mrb_state *mrb);
 void psql_inspect_planner_info_fini(mrb_state *mrb);
 void psql_inspect_planner_info_class_init(mrb_state *mrb, struct RClass *class);
 
-#endif  /* PSQL_INSPECT_PLANNER_INFO_H*/
+#endif  /* PSQL_INSPECT_PLANNER_INFO_H */
