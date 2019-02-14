@@ -1,4 +1,5 @@
 #include "postgres.h"
+#include "access/stratnum.h"
 #include "nodes/relation.h"
 
 #include <mruby.h>
@@ -43,6 +44,40 @@ psql_inspect_path_key_type(mrb_state *mrb, mrb_value self)
     return psql_inspect_mrb_str_from_NodeTag(mrb, path_key->type);
 }
 
+/*
+ * Note: pk_strategy is either BTLessStrategyNumber (for ASC) or
+ * BTGreaterStrategyNumber (for DESC).
+ * See: src/include/nodes/relation.h
+ */
+
+static mrb_value
+psql_inspect_path_key_get_strategy_str(mrb_state *mrb, int pk_strategy)
+{
+    switch (pk_strategy) {
+      case BTLessStrategyNumber:
+        return mrb_str_new_cstr(mrb, "BTLess");
+      case BTLessEqualStrategyNumber:
+        return mrb_str_new_cstr(mrb, "BTLessEqual");
+      case BTEqualStrategyNumber:
+        return mrb_str_new_cstr(mrb, "BTEqual");
+      case BTGreaterEqualStrategyNumber:
+        return mrb_str_new_cstr(mrb, "BTGreaterEqual");
+      case BTGreaterStrategyNumber:
+        return mrb_str_new_cstr(mrb, "BTGreater");
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown pk_strategy number: %d", pk_strategy);
+    }
+}
+
+static mrb_value
+psql_inspect_path_key_pk_strategy(mrb_state *mrb, mrb_value self)
+{
+    PathKey *path_key;
+
+    path_key = (PathKey *)DATA_PTR(self);
+    return psql_inspect_path_key_get_strategy_str(mrb, path_key->pk_strategy);
+}
+
 void
 psql_inspect_path_key_class_init(mrb_state *mrb, struct RClass *class)
 {
@@ -51,4 +86,5 @@ psql_inspect_path_key_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, path_key_class, "initialize", psql_inspect_path_key_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, path_key_class, "type", psql_inspect_path_key_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, path_key_class, "pk_strategy", psql_inspect_path_key_pk_strategy, MRB_ARGS_NONE());
 }
