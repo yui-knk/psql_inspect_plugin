@@ -35,12 +35,35 @@ psql_inspect_planner_info_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_planner_info_build_from_planner_info(mrb_state *mrb, PlannerInfo *root)
+{
+    mrb_value val = mrb_class_new_instance(mrb, 0, NULL, planner_info);
+    psql_inspect_planner_info_set_planner_info(mrb, val, root);
+
+    return val;
+}
+
+static mrb_value
 psql_inspect_planner_info_type(mrb_state *mrb, mrb_value self)
 {
     PlannerInfo *root;
 
     root = (PlannerInfo *)DATA_PTR(self);
     return psql_inspect_mrb_str_from_NodeTag(mrb, root->type);
+}
+
+static mrb_value
+psql_inspect_planner_info_parent_root(mrb_state *mrb, mrb_value self)
+{
+    PlannerInfo *root;
+
+    root = (PlannerInfo *)DATA_PTR(self);
+
+    if (root->parent_root == NULL) {
+        return mrb_nil_value();
+    } else {
+        return psql_inspect_planner_info_build_from_planner_info(mrb, root->parent_root);
+    }
 }
 
 static mrb_value
@@ -106,5 +129,6 @@ psql_inspect_planner_info_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_class_method(mrb, planner_info, "current_planner_info", psql_inspect_c_current_planner_info, MRB_ARGS_NONE());
     mrb_define_method(mrb, planner_info, "initialize", psql_inspect_planner_info_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, planner_info, "type", psql_inspect_planner_info_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, planner_info, "parent_root", psql_inspect_planner_info_parent_root, MRB_ARGS_NONE());
     mrb_define_method(mrb, planner_info, "simple_rel_array", psql_inspect_planner_info_simple_rel_array, MRB_ARGS_NONE());
 }
