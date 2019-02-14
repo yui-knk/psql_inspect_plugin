@@ -1,5 +1,6 @@
 #include "postgres.h"
 #include "nodes/relation.h"
+#include "nodes/pg_list.h"
 
 #include <mruby.h>
 #include <mruby/array.h>
@@ -8,6 +9,7 @@
 #include <mruby/variable.h>
 
 #include <psql_inspect_nodes.h>
+#include <psql_inspect_path_key.h>
 #include <psql_inspect_planner_info.h>
 #include <psql_inspect_rel_opt_info.h>
 
@@ -99,6 +101,31 @@ psql_inspect_planner_info_simple_rel_array(mrb_state *mrb, mrb_value self)
     return ary;
 }
 
+static mrb_value
+psql_inspect_planner_info_sort_pathkeys(mrb_state *mrb, mrb_value self)
+{
+    PlannerInfo *root;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell   *lc;
+
+    root = (PlannerInfo *)DATA_PTR(self);
+    array_size = list_length(root->sort_pathkeys);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, root->sort_pathkeys) {
+        mrb_value v;
+        PathKey *pathkey = (PathKey *) lfirst(lc);
+
+        v = psql_inspect_path_key_build_from_path_key(mrb, pathkey);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
 void
 psql_inspect_planner_info_mruby_env_setup(mrb_state *mrb, PlannerInfo *stmt)
 {
@@ -131,4 +158,5 @@ psql_inspect_planner_info_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, planner_info, "type", psql_inspect_planner_info_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, planner_info, "parent_root", psql_inspect_planner_info_parent_root, MRB_ARGS_NONE());
     mrb_define_method(mrb, planner_info, "simple_rel_array", psql_inspect_planner_info_simple_rel_array, MRB_ARGS_NONE());
+    mrb_define_method(mrb, planner_info, "sort_pathkeys", psql_inspect_planner_info_sort_pathkeys, MRB_ARGS_NONE());
 }
