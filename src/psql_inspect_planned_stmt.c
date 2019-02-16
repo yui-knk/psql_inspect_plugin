@@ -7,6 +7,7 @@
 #include <mruby/variable.h>
 
 #include <psql_inspect_nodes.h>
+#include <psql_inspect_plan.h>
 #include <psql_inspect_planned_stmt.h>
 
 static struct RClass *class_stmt = NULL;
@@ -51,6 +52,15 @@ psql_inspect_planned_stmt_command_type(mrb_state *mrb, mrb_value self)
     return psql_inspect_mrb_str_from_CmdType(mrb, stmt->commandType);
 }
 
+static mrb_value
+psql_inspect_planned_stmt_plan_tree(mrb_state *mrb, mrb_value self)
+{
+    PlannedStmt *stmt;
+
+    stmt = (PlannedStmt *)DATA_PTR(self);
+    return psql_inspect_plan_build_from_plan(mrb, stmt->planTree);
+}
+
 void
 psql_inspect_planned_stmt_mruby_env_setup(mrb_state *mrb, PlannedStmt *stmt)
 {
@@ -82,4 +92,6 @@ psql_inspect_planned_stmt_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, class_stmt, "initialize", psql_inspect_planned_stmt_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "type", psql_inspect_planned_stmt_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "command_type", psql_inspect_planned_stmt_command_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, class_stmt, "plan_tree", psql_inspect_planned_stmt_plan_tree, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, class_stmt, "rtable", psql_inspect_planned_stmt_rtable, MRB_ARGS_NONE());
 }
