@@ -156,6 +156,15 @@ psql_inspect_equivalence_class_ec_members(mrb_state *mrb, mrb_value self)
     return ary;
 }
 
+static mrb_value
+psql_inspect_equivalence_class_ec_sortref(mrb_state *mrb, mrb_value self)
+{
+    EquivalenceClass *ec;
+
+    ec = (EquivalenceClass *)DATA_PTR(self);
+    return mrb_fixnum_value(ec->ec_sortref);
+}
+
 
 static mrb_value
 psql_inspect_equivalence_member_init(mrb_state *mrb, mrb_value self)
@@ -215,6 +224,7 @@ psql_inspect_path_key_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, equivalence_class_class, "initialize", psql_inspect_equivalence_class_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, equivalence_class_class, "type", psql_inspect_equivalence_class_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, equivalence_class_class, "ec_members", psql_inspect_equivalence_class_ec_members, MRB_ARGS_NONE());
+    mrb_define_method(mrb, equivalence_class_class, "ec_sortref", psql_inspect_equivalence_class_ec_sortref, MRB_ARGS_NONE());
 
 
     equivalence_member_class = mrb_define_class_under(mrb, class, "EquivalenceMember", mrb->object_class);
