@@ -9,6 +9,7 @@
 #include <mruby/data.h>
 
 #include <psql_inspect_bitmapset.h>
+#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_path_key.h>
 
@@ -199,6 +200,15 @@ psql_inspect_equivalence_member_type(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_equivalence_member_em_expr(mrb_state *mrb, mrb_value self)
+{
+    EquivalenceMember *em;
+
+    em = (EquivalenceMember *)DATA_PTR(self);
+    return psql_inspect_expr_build_from_expr(mrb, em->em_expr);
+}
+
+static mrb_value
 psql_inspect_equivalence_member_em_relids(mrb_state *mrb, mrb_value self)
 {
     EquivalenceMember *em;
@@ -231,5 +241,6 @@ psql_inspect_path_key_class_init(mrb_state *mrb, struct RClass *class)
     MRB_SET_INSTANCE_TT(equivalence_member_class, MRB_TT_DATA);
     mrb_define_method(mrb, equivalence_member_class, "initialize", psql_inspect_equivalence_member_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, equivalence_member_class, "type", psql_inspect_equivalence_member_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, equivalence_member_class, "em_expr", psql_inspect_equivalence_member_em_expr, MRB_ARGS_NONE());
     mrb_define_method(mrb, equivalence_member_class, "em_relids", psql_inspect_equivalence_member_em_relids, MRB_ARGS_NONE());
 }

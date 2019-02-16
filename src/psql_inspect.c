@@ -9,6 +9,7 @@
 #include <mruby/string.h>
 
 #include <psql_inspect_bitmapset.h>
+#include <psql_inspect_expr.h>
 #include <psql_inspect_path.h>
 #include <psql_inspect_path_key.h>
 #include <psql_inspect_planned_stmt.h>
@@ -107,6 +108,7 @@ psql_inspect_class_init(mrb_state *mrb)
     psql_inspect_rel_opt_info_class_init(mrb, class);
     psql_inspect_path_class_init(mrb, class);
     psql_inspect_path_key_class_init(mrb, class);
+    psql_inspect_expr_class_init(mrb, class);
 }
 
 /*

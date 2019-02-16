@@ -13,7 +13,7 @@ MODULE_big=psql_inspect
 OBJS=psql_inspect_nodes.o psql_inspect_planned_stmt.o \
      psql_inspect_rel_opt_info.o psql_inspect_planner_info.o \
      psql_inspect.o psql_inspect_path.o psql_inspect_path_key.o \
-     psql_inspect_bitmapset.o
+     psql_inspect_bitmapset.o psql_inspect_expr.o
 PG_CONFIG=pg_config
 SHLIB_LINK=-L$(MRUBY_LIB) -lmruby
 PGXS := $(shell $(PG_CONFIG) --pgxs)
