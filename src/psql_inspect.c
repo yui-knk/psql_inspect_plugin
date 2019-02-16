@@ -8,6 +8,7 @@
 #include <mruby/compile.h>
 #include <mruby/string.h>
 
+#include <psql_inspect_bitmapset.h>
 #include <psql_inspect_path.h>
 #include <psql_inspect_path_key.h>
 #include <psql_inspect_planned_stmt.h>
@@ -100,6 +101,7 @@ psql_inspect_class_init(mrb_state *mrb)
 
     class = mrb_define_class(mrb, "PgInspect", mrb->object_class);
 
+    psql_inspect_bitmapset_class_init(mrb, class);
     psql_inspect_planned_stmt_class_init(mrb, class);
     psql_inspect_planner_info_class_init(mrb, class);
     psql_inspect_rel_opt_info_class_init(mrb, class);
