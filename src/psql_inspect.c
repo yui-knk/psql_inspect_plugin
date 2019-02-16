@@ -38,6 +38,23 @@ psql_inspect_get_script(const char *script_guc_name)
 }
 
 static void
+psql_inspect_mruby_error_handling(mrb_state *mrb)
+{
+    if (mrb->exc != NULL) {
+        mrb_value msg;
+        msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0, NULL);
+
+        if (mrb_string_p(msg)) {
+            elog(WARNING, "Error is raised in mruby \"%s\"", mrb_string_value_ptr(mrb, msg));
+        } else {
+            elog(WARNING, "Some error is raised in mruby but can not detect it...");
+        }
+
+        mrb->exc = NULL;
+    }
+}
+
+static void
 psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti, RangeTblEntry *rte)
 {
     const char *script;
@@ -55,19 +72,7 @@ psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti
 
     /* TODO: Is using mrb_rescue better? We can not touch original error in mrb_rescue */
     mrb_load_string(mrb_s, script);
-
-    if (mrb_s->exc != NULL) {
-        mrb_value msg;
-        msg = mrb_funcall(mrb_s, mrb_obj_value(mrb_s->exc), "message", 0, NULL);
-
-        if (mrb_string_p(msg)) {
-            elog(WARNING, "Error is raised in mruby \"%s\"", mrb_string_value_ptr(mrb_s, msg));
-        } else {
-            elog(WARNING, "Some error is raised in mruby but can not detect it...");
-        }
-
-        mrb_s->exc = NULL;
-    }
+    psql_inspect_mruby_error_handling(mrb_s);
 
     psql_inspect_planner_info_mruby_env_tear_down(mrb_s);
 }
@@ -88,8 +93,10 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
     }
 
     psql_inspect_planned_stmt_mruby_env_setup(mrb_s, stmt);
+
     mrb_load_string(mrb_s, script);
-    /* TODO: Handling mruby exception */
+    psql_inspect_mruby_error_handling(mrb_s);
+
     psql_inspect_planned_stmt_mruby_env_tear_down(mrb_s);
 
     return stmt;
