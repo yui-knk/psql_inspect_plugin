@@ -447,6 +447,6 @@ psql_inspect_mrb_str_from_CmdType(mrb_state *mrb, CmdType type)
       case CMD_TYPE(NOTHING);
 #undef CMD_TYPE
       default:
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown command type number: %d", type);
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown command type number: %S", mrb_fixnum_value(type));
     }
 }
