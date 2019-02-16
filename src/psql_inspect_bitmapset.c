@@ -2,6 +2,7 @@
 #include "nodes/bitmapset.h"
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 
@@ -42,6 +43,27 @@ psql_inspect_bitmapset_bms_num_members(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(bms_num_members(b));
 }
 
+static mrb_value
+psql_inspect_bitmapset_words(mrb_state *mrb, mrb_value self)
+{
+    Bitmapset *b;
+    int array_size;
+    mrb_value ary;
+
+    b = (Bitmapset *)DATA_PTR(self);
+    array_size = bms_num_members(b);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    for (int i = 0; i < array_size; i++) {
+        mrb_value v;
+
+        v = mrb_fixnum_value(b->words[i]);
+        mrb_ary_set(mrb, ary, i, v);
+    }
+
+    return ary;
+}
+
 void
 psql_inspect_bitmapset_class_init(mrb_state *mrb, struct RClass *class)
 {
@@ -50,4 +72,6 @@ psql_inspect_bitmapset_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, bitmapset_class, "initialize", psql_inspect_bitmapset_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, bitmapset_class, "bms_num_members", psql_inspect_bitmapset_bms_num_members, MRB_ARGS_NONE());
+    /* For debug */
+    mrb_define_method(mrb, bitmapset_class, "words", psql_inspect_bitmapset_words, MRB_ARGS_NONE());
 }
