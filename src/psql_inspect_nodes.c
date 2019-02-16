@@ -425,7 +425,7 @@ psql_inspect_mrb_str_from_NodeTag(mrb_state *mrb, NodeTag type)
       case T_TYPE(CallContext);
 #undef T_TYPE
       default:
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown node tag number: %d", type);
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown node tag number: %S", mrb_fixnum_value(type));
     }
 }
 
