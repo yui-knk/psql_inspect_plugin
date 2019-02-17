@@ -60,12 +60,13 @@ psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti
 {
     const char *script;
 
+    /* TODO: use elog debug */
     fprintf(stderr, "psql_inspect_set_rel_pathlist_hook with mruby!\n");
 
     script = psql_inspect_get_script(set_rel_pathlist_script_guc_name);
 
     if (script == NULL) {
-        elog(WARNING, "You should set \"%s\"", set_rel_pathlist_script_guc_name);
+        elog(LOG, "You should set \"%s\"", set_rel_pathlist_script_guc_name);
         return;
     }
 
@@ -84,12 +85,13 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
     const char *script;
     PlannedStmt *stmt = standard_planner(parse, cursorOptions, boundParams);
 
+    /* TODO: use elog debug */
     fprintf(stderr, "psql_inspect_planner_hook with mruby!\n");
 
     script = psql_inspect_get_script(planner_script_guc_name);
 
     if (script == NULL) {
-        elog(WARNING, "You should set \"%s\"", planner_script_guc_name);
+        elog(LOG, "You should set \"%s\"", planner_script_guc_name);
         return stmt;
     }
 
