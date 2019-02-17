@@ -1,7 +1,9 @@
 #include "postgres.h"
 #include "nodes/relation.h"
+#include "nodes/pg_list.h"
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 
@@ -15,6 +17,8 @@ static struct RClass *seq_scan_class = NULL;
 static const struct mrb_data_type psql_inspect_plan_data_type = { "Plan", mrb_free };
 static const struct mrb_data_type psql_inspect_agg_data_type = { "Agg", mrb_free };
 static const struct mrb_data_type psql_inspect_seq_scan_data_type = { "SeqScan", mrb_free };
+
+mrb_value psql_inspect_plan_build_from_plan(mrb_state *mrb, Plan *plan);
 
 static void
 psql_inspect_plan_set_plan(mrb_state *mrb, mrb_value self, Plan *plan)
@@ -36,6 +40,69 @@ psql_inspect_agg_init(mrb_state *mrb, mrb_value self)
     DATA_TYPE(self) = &psql_inspect_agg_data_type;
 
     return self;
+}
+
+static mrb_value
+psql_inspect_agg_aggstrategy(mrb_state *mrb, mrb_value self)
+{
+    Agg *agg;
+
+    agg = (Agg *)DATA_PTR(self);
+    return psql_inspect_mrb_str_from_AggStrategy(mrb, agg->aggstrategy);
+}
+
+static mrb_value
+psql_inspect_agg_num_cols(mrb_state *mrb, mrb_value self)
+{
+    Agg *agg;
+
+    agg = (Agg *)DATA_PTR(self);
+    return mrb_fixnum_value(agg->numCols);
+
+}
+
+static mrb_value
+psql_inspect_agg_grp_col_idx(mrb_state *mrb, mrb_value self)
+{
+    Agg *agg;
+    mrb_value ary;
+
+    agg = (Agg *)DATA_PTR(self);
+    ary = mrb_ary_new_capa(mrb, agg->numCols);
+
+    for (int i = 0; i < agg->numCols; i++) {
+        mrb_value v;
+
+        v = mrb_fixnum_value(agg->grpColIdx[i]);
+        mrb_ary_set(mrb, ary, i, v);
+    }
+
+    return ary;
+}
+
+static mrb_value
+psql_inspect_agg_chain(mrb_state *mrb, mrb_value self)
+{
+    Agg *agg;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    agg = (Agg *)DATA_PTR(self);
+    array_size = list_length(agg->chain);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, agg->chain) {
+        mrb_value v;
+        Agg *agg2 = (Agg *) lfirst(lc);
+
+        v = psql_inspect_plan_build_from_plan(mrb, (Plan *)agg2);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
 }
 
 static mrb_value
@@ -122,6 +189,10 @@ psql_inspect_plan_class_init(mrb_state *mrb, struct RClass *class)
     MRB_SET_INSTANCE_TT(agg_class, MRB_TT_DATA);
 
     mrb_define_method(mrb, agg_class, "initialize", psql_inspect_agg_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, agg_class, "aggstrategy", psql_inspect_agg_aggstrategy, MRB_ARGS_NONE());
+    mrb_define_method(mrb, agg_class, "num_cols", psql_inspect_agg_num_cols, MRB_ARGS_NONE());
+    mrb_define_method(mrb, agg_class, "grp_col_idx", psql_inspect_agg_grp_col_idx, MRB_ARGS_NONE());
+    mrb_define_method(mrb, agg_class, "chain", psql_inspect_agg_chain, MRB_ARGS_NONE());
 
     /* SeqScan class */
     seq_scan_class = mrb_define_class_under(mrb, class, "SeqScan", plan_class);

@@ -429,7 +429,6 @@ psql_inspect_mrb_str_from_NodeTag(mrb_state *mrb, NodeTag type)
     }
 }
 
-
 mrb_value
 psql_inspect_mrb_str_from_CmdType(mrb_state *mrb, CmdType type)
 {
@@ -448,5 +447,23 @@ psql_inspect_mrb_str_from_CmdType(mrb_state *mrb, CmdType type)
 #undef CMD_TYPE
       default:
         mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown command type number: %S", mrb_fixnum_value(type));
+    }
+}
+
+mrb_value
+psql_inspect_mrb_str_from_AggStrategy(mrb_state *mrb, AggStrategy strategy)
+{
+
+#define AGG_TYPE(strategy) \
+    AGG_##strategy: return mrb_str_new_cstr(mrb, #strategy);
+
+    switch (strategy) {
+      case AGG_TYPE(PLAIN);
+      case AGG_TYPE(SORTED);
+      case AGG_TYPE(HASHED);
+      case AGG_TYPE(MIXED);
+#undef AGG_TYPE
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown command strategy number: %S", mrb_fixnum_value(strategy));
     }
 }
