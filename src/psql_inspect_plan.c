@@ -7,6 +7,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 
+#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_plan.h>
 
@@ -144,6 +145,31 @@ psql_inspect_plan_type(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_plan_targetlist(mrb_state *mrb, mrb_value self)
+{
+    Plan *plan;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    plan = (Plan *)DATA_PTR(self);
+    array_size = list_length(plan->targetlist);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, plan->targetlist) {
+        mrb_value v;
+        TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+        v = psql_inspect_expr_build_from_expr(mrb, (Expr *)tle);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
+static mrb_value
 psql_inspect_plan_lefttree(mrb_state *mrb, mrb_value self)
 {
     Plan *plan;
@@ -181,6 +207,7 @@ psql_inspect_plan_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, plan_class, "initialize", psql_inspect_plan_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "type", psql_inspect_plan_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, plan_class, "targetlist", psql_inspect_plan_targetlist, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "lefttree", psql_inspect_plan_lefttree, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "righttree", psql_inspect_plan_righttree, MRB_ARGS_NONE());
 
