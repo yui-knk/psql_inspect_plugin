@@ -26,7 +26,7 @@ LOAD
 ### Set script
 
 ```shell
-my_db=# set session "psql_inspect.set_rel_pathlist_script" = 'p [PgInspect::PlannerInfo.current_planner_info.type]';
+my_db=# set session "psql_inspect.set_rel_pathlist_script" = 'cp = PgInspect::PlannerInfo.current_planner_info; p cp.simple_rel_array.compact.map(&:pathlist)';
 SET
 
 my_db=# select * from films;
