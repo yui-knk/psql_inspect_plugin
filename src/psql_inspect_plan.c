@@ -125,6 +125,25 @@ psql_inspect_sort_num_cols(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_sort_sort_col_idx(mrb_state *mrb, mrb_value self)
+{
+    Sort *s;
+    mrb_value ary;
+
+    s = (Sort *)DATA_PTR(self);
+    ary = mrb_ary_new_capa(mrb, s->numCols);
+
+    for (int i = 0; i < s->numCols; i++) {
+        mrb_value v;
+
+        v = mrb_fixnum_value(s->sortColIdx[i]);
+        mrb_ary_set(mrb, ary, i, v);
+    }
+
+    return ary;
+}
+
+static mrb_value
 psql_inspect_sort_sort_operators(mrb_state *mrb, mrb_value self)
 {
     Sort *s;
@@ -267,6 +286,7 @@ psql_inspect_plan_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, sort_class, "initialize", psql_inspect_sort_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, sort_class, "num_cols", psql_inspect_sort_num_cols, MRB_ARGS_NONE());
+    mrb_define_method(mrb, sort_class, "sort_col_idx", psql_inspect_sort_sort_col_idx, MRB_ARGS_NONE());
     mrb_define_method(mrb, sort_class, "sort_operators", psql_inspect_sort_sort_operators, MRB_ARGS_NONE());
 
     /* SeqScan class */
