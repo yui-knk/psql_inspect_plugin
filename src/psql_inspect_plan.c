@@ -13,10 +13,12 @@
 
 static struct RClass *plan_class = NULL;
 static struct RClass *agg_class = NULL;
+static struct RClass *sort_class = NULL;
 static struct RClass *seq_scan_class = NULL;
 
 static const struct mrb_data_type psql_inspect_plan_data_type = { "Plan", mrb_free };
 static const struct mrb_data_type psql_inspect_agg_data_type = { "Agg", mrb_free };
+static const struct mrb_data_type psql_inspect_sort_data_type = { "Sort", mrb_free };
 static const struct mrb_data_type psql_inspect_seq_scan_data_type = { "SeqScan", mrb_free };
 
 mrb_value psql_inspect_plan_build_from_plan(mrb_state *mrb, Plan *plan);
@@ -59,7 +61,6 @@ psql_inspect_agg_num_cols(mrb_state *mrb, mrb_value self)
 
     agg = (Agg *)DATA_PTR(self);
     return mrb_fixnum_value(agg->numCols);
-
 }
 
 static mrb_value
@@ -107,6 +108,42 @@ psql_inspect_agg_chain(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_sort_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_sort_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_sort_num_cols(mrb_state *mrb, mrb_value self)
+{
+    Sort *s;
+
+    s = (Sort *)DATA_PTR(self);
+    return mrb_fixnum_value(s->numCols);
+}
+
+static mrb_value
+psql_inspect_sort_sort_operators(mrb_state *mrb, mrb_value self)
+{
+    Sort *s;
+    mrb_value ary;
+
+    s = (Sort *)DATA_PTR(self);
+    ary = mrb_ary_new_capa(mrb, s->numCols);
+
+    for (int i = 0; i < s->numCols; i++) {
+        mrb_value v;
+
+        v = mrb_fixnum_value(s->sortOperators[i]);
+        mrb_ary_set(mrb, ary, i, v);
+    }
+
+    return ary;
+}
+
+static mrb_value
 psql_inspect_seq_scan_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_seq_scan_data_type;
@@ -122,6 +159,9 @@ psql_inspect_plan_build_from_plan(mrb_state *mrb, Plan *plan)
     switch (plan->type) {
       case T_Agg:
         val = mrb_class_new_instance(mrb, 0, NULL, agg_class);
+        break;
+      case T_Sort:
+        val = mrb_class_new_instance(mrb, 0, NULL, sort_class);
         break;
       case T_SeqScan:
         val = mrb_class_new_instance(mrb, 0, NULL, seq_scan_class);
@@ -220,6 +260,14 @@ psql_inspect_plan_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, agg_class, "num_cols", psql_inspect_agg_num_cols, MRB_ARGS_NONE());
     mrb_define_method(mrb, agg_class, "grp_col_idx", psql_inspect_agg_grp_col_idx, MRB_ARGS_NONE());
     mrb_define_method(mrb, agg_class, "chain", psql_inspect_agg_chain, MRB_ARGS_NONE());
+
+    /* Sort class */
+    sort_class = mrb_define_class_under(mrb, class, "Sort", plan_class);
+    MRB_SET_INSTANCE_TT(sort_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, sort_class, "initialize", psql_inspect_sort_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, sort_class, "num_cols", psql_inspect_sort_num_cols, MRB_ARGS_NONE());
+    mrb_define_method(mrb, sort_class, "sort_operators", psql_inspect_sort_sort_operators, MRB_ARGS_NONE());
 
     /* SeqScan class */
     seq_scan_class = mrb_define_class_under(mrb, class, "SeqScan", plan_class);
