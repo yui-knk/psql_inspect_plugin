@@ -20,11 +20,9 @@ psql_inspect_query_set_query(mrb_state *mrb, mrb_value self, Query *query)
 }
 
 static mrb_value
-psql_inspect_c_current_query(mrb_state *mrb, mrb_value self)
+psql_inspect_c_current_query(mrb_state *mrb, mrb_value klass)
 {
-    DATA_TYPE(self) = &psql_inspect_query_data_type;
-
-    return self;
+    return mrb_cv_get(mrb, klass, mrb_intern_lit(mrb, "query_class"));
 }
 
 static mrb_value
