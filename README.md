@@ -26,6 +26,17 @@ LOAD
 ### Set script
 
 ```shell
+my_db=# set session "psql_inspect.post_parse_analyze_script" = 'cq = PgInspect::Query.current_query; p cq.target_list';
+SET
+
+my_db=# select * from films;
+ code | title | did | date_prod | kind | len
+------+-------+-----+-----------+------+-----
+(0 rows)
+```
+
+
+```shell
 my_db=# set session "psql_inspect.set_rel_pathlist_script" = 'cp = PgInspect::PlannerInfo.current_planner_info; p cp.simple_rel_array.compact.map(&:pathlist)';
 SET
 
