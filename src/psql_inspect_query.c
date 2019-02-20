@@ -7,6 +7,7 @@
 #include <mruby/data.h>
 #include <mruby/variable.h>
 
+#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_query.h>
 
@@ -69,6 +70,31 @@ psql_inspect_query_has_aggs(mrb_state *mrb, mrb_value self)
 //     return mrb_bool_value(query->has_aggs);
 // }
 
+static mrb_value
+psql_inspect_query_target_list(mrb_state *mrb, mrb_value self)
+{
+    Query *query;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    query = (Query *)DATA_PTR(self);
+    array_size = list_length(query->targetList);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, query->targetList) {
+        mrb_value v;
+        TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+        v = psql_inspect_expr_build_from_expr(mrb, (Expr *)tle);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
 void
 psql_inspect_query_mruby_env_setup(mrb_state *mrb, Query *query)
 {
@@ -102,7 +128,7 @@ psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, query_class, "command_type", psql_inspect_query_command_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "has_aggs", psql_inspect_query_has_aggs, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "rtable", psql_inspect_query_rtable, MRB_ARGS_NONE());
-    // mrb_define_method(mrb, query_class, "target_list", psql_inspect_query_target_list, MRB_ARGS_NONE());
+    mrb_define_method(mrb, query_class, "target_list", psql_inspect_query_target_list, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "group_clause", psql_inspect_query_group_clause, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "sort_clause", psql_inspect_query_sort_clause, MRB_ARGS_NONE());
 }
