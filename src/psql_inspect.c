@@ -1,6 +1,7 @@
 #include "postgres.h"
 #include "optimizer/paths.h"
 #include "optimizer/planner.h"
+#include "parser/analyze.h"
 #include "utils/guc.h"
 #include "utils/elog.h"
 
@@ -15,6 +16,7 @@
 #include <psql_inspect_plan.h>
 #include <psql_inspect_planned_stmt.h>
 #include <psql_inspect_planner_info.h>
+#include <psql_inspect_query.h>
 #include <psql_inspect_rel_opt_info.h>
 
 PG_MODULE_MAGIC;
@@ -22,11 +24,14 @@ PG_MODULE_MAGIC;
 void _PG_init(void);
 void _PG_fini(void);
 
+/* This is called the end of parse analysis */
+static post_parse_analyze_hook_type prev_post_parse_analyze_hook = NULL;
 static planner_hook_type prev_planner_hook = NULL;
 static set_rel_pathlist_hook_type prev_set_rel_pathlist_hook = NULL;
 
 static mrb_state *mrb_s = NULL;
 
+static const char *post_parse_analyze_script_guc_name = "psql_inspect.post_parse_analyze_script";
 static const char *planner_script_guc_name = "psql_inspect.planner_script";
 static const char *set_rel_pathlist_script_guc_name = "psql_inspect.set_rel_pathlist_script";
 
@@ -106,6 +111,30 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
 }
 
 static void
+psql_inspect_post_parse_analyze_hook(ParseState *pstate, Query *query)
+{
+    const char *script;
+
+    /* TODO: use elog debug */
+    fprintf(stderr, "psql_inspect_post_parse_analyze_hook with mruby!\n");
+
+    script = psql_inspect_get_script(post_parse_analyze_script_guc_name);
+
+    if (script == NULL) {
+        elog(LOG, "You should set \"%s\"", post_parse_analyze_script_guc_name);
+        return;
+    }
+
+    psql_inspect_query_mruby_env_setup(mrb_s, query);
+
+    /* TODO: Is using mrb_rescue better? We can not touch original error in mrb_rescue */
+    mrb_load_string(mrb_s, script);
+    psql_inspect_mruby_error_handling(mrb_s);
+
+    psql_inspect_query_mruby_env_tear_down(mrb_s);    
+}
+
+static void
 psql_inspect_class_init(mrb_state *mrb)
 {
     struct RClass *class;
@@ -120,6 +149,7 @@ psql_inspect_class_init(mrb_state *mrb)
     psql_inspect_path_key_class_init(mrb, class);
     psql_inspect_expr_class_init(mrb, class);
     psql_inspect_plan_class_init(mrb, class);
+    psql_inspect_query_class_init(mrb, class);
 }
 
 /*
@@ -132,6 +162,10 @@ _PG_init(void)
 
     mrb_s = mrb_open();
     psql_inspect_class_init(mrb_s);
+
+    /* parse_analyze_hook */
+    prev_post_parse_analyze_hook = post_parse_analyze_hook;
+    post_parse_analyze_hook = psql_inspect_post_parse_analyze_hook;
 
     /* planner_hook */
     prev_planner_hook = planner_hook;
@@ -157,9 +191,15 @@ _PG_fini(void)
         planner_hook = prev_planner_hook;
     }
 
+    /* parse_analyze_hook */
+    if (post_parse_analyze_hook == psql_inspect_post_parse_analyze_hook) {
+        post_parse_analyze_hook = prev_post_parse_analyze_hook;
+    }
+
     if (mrb_s != NULL) {
         psql_inspect_planned_stmt_fini(mrb_s);
         psql_inspect_planner_info_fini(mrb_s);
+        psql_inspect_query_fini(mrb_s);
 
         mrb_close(mrb_s);
         mrb_s = NULL;
