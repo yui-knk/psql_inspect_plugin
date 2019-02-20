@@ -12,7 +12,43 @@
 #include <psql_inspect_query.h>
 
 static struct RClass *query_class = NULL;
+static struct RClass *range_tbl_entry_class = NULL;
+
 static const struct mrb_data_type psql_inspect_query_data_type = { "Query", mrb_free };
+static const struct mrb_data_type psql_inspect_range_tbl_entry_data_type = { "RangeTblEntry", mrb_free };
+
+static mrb_value
+psql_inspect_range_tbl_entry_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_range_tbl_entry_data_type;
+
+    return self;
+}
+
+static void
+psql_inspect_range_tbl_entry_set_range_tbl_entry(mrb_state *mrb, mrb_value self, RangeTblEntry *rte)
+{
+    DATA_PTR(self) = rte;
+}
+
+static mrb_value
+psql_inspect_range_tbl_entry_type(mrb_state *mrb, mrb_value self)
+{
+    RangeTblEntry *rte;
+
+    rte = (RangeTblEntry *)DATA_PTR(self);
+    return psql_inspect_mrb_str_from_NodeTag(mrb, rte->type);
+}
+
+static mrb_value
+psql_inspect_range_tbl_entry_build_from_rte(mrb_state *mrb, RangeTblEntry *rte)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, range_tbl_entry_class);
+    psql_inspect_range_tbl_entry_set_range_tbl_entry(mrb, val, rte);
+    return val;
+}
 
 static void
 psql_inspect_query_set_query(mrb_state *mrb, mrb_value self, Query *query)
@@ -61,14 +97,32 @@ psql_inspect_query_has_aggs(mrb_state *mrb, mrb_value self)
     return mrb_bool_value(query->hasAggs);
 }
 
-// static mrb_value
-// psql_inspect_query_rtable(mrb_state *mrb, mrb_value self)
-// {
-//     Query *query;
+static mrb_value
+psql_inspect_query_rtable(mrb_state *mrb, mrb_value self)
+{
+    Query *query;
 
-//     query = (Query *)DATA_PTR(self);
-//     return mrb_bool_value(query->has_aggs);
-// }
+    query = (Query *)DATA_PTR(self);
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    query = (Query *)DATA_PTR(self);
+    array_size = list_length(query->rtable);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, query->rtable) {
+        mrb_value v;
+        RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+
+        v = psql_inspect_range_tbl_entry_build_from_rte(mrb, rte);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
 
 static mrb_value
 psql_inspect_query_target_list(mrb_state *mrb, mrb_value self)
@@ -119,6 +173,7 @@ psql_inspect_query_fini(mrb_state *mrb)
 void
 psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
 {
+    /* Query class */
     query_class = mrb_define_class_under(mrb, class, "Query", mrb->object_class);
     MRB_SET_INSTANCE_TT(query_class, MRB_TT_DATA);
 
@@ -127,8 +182,16 @@ psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, query_class, "type", psql_inspect_query_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "command_type", psql_inspect_query_command_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "has_aggs", psql_inspect_query_has_aggs, MRB_ARGS_NONE());
-    // mrb_define_method(mrb, query_class, "rtable", psql_inspect_query_rtable, MRB_ARGS_NONE());
+    mrb_define_method(mrb, query_class, "rtable", psql_inspect_query_rtable, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "target_list", psql_inspect_query_target_list, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "group_clause", psql_inspect_query_group_clause, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "sort_clause", psql_inspect_query_sort_clause, MRB_ARGS_NONE());
+
+    /* RangeTblEntry class */
+    range_tbl_entry_class = mrb_define_class_under(mrb, class, "RangeTblEntry", mrb->object_class);
+    MRB_SET_INSTANCE_TT(range_tbl_entry_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, range_tbl_entry_class, "initialize", psql_inspect_range_tbl_entry_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_tbl_entry_class, "type", psql_inspect_range_tbl_entry_type, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, range_tbl_entry_class, "rtekind", psql_inspect_range_tbl_entry_rtekind, MRB_ARGS_NONE());
 }
