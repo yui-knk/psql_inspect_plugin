@@ -27,7 +27,7 @@ psql_inspect_c_current_query(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
-psql_inspect_current_query_init(mrb_state *mrb, mrb_value self)
+psql_inspect_query_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_query_data_type;
 
@@ -35,7 +35,7 @@ psql_inspect_current_query_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-psql_inspect_current_query_type(mrb_state *mrb, mrb_value self)
+psql_inspect_query_type(mrb_state *mrb, mrb_value self)
 {
     Query *query;
 
@@ -123,8 +123,8 @@ psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
     MRB_SET_INSTANCE_TT(query_class, MRB_TT_DATA);
 
     mrb_define_class_method(mrb, query_class, "current_query", psql_inspect_c_current_query, MRB_ARGS_NONE());
-    mrb_define_method(mrb, query_class, "initialize", psql_inspect_current_query_init, MRB_ARGS_NONE());
-    mrb_define_method(mrb, query_class, "type", psql_inspect_current_query_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, query_class, "initialize", psql_inspect_query_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, query_class, "type", psql_inspect_query_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "command_type", psql_inspect_query_command_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "has_aggs", psql_inspect_query_has_aggs, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "rtable", psql_inspect_query_rtable, MRB_ARGS_NONE());
