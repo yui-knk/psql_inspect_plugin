@@ -41,6 +41,55 @@ psql_inspect_range_tbl_entry_type(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_mrb_str_from_RTEKind(mrb_state *mrb, RTEKind rtekind)
+{
+    #define RTE_TYPE(rtekind) \
+        RTE_##rtekind: return mrb_str_new_cstr(mrb, #rtekind);
+
+        switch (rtekind) {
+          case RTE_TYPE(RELATION);
+          case RTE_TYPE(SUBQUERY);
+          case RTE_TYPE(JOIN);
+          case RTE_TYPE(FUNCTION);
+          case RTE_TYPE(TABLEFUNC);
+          case RTE_TYPE(VALUES);
+          case RTE_TYPE(CTE);
+          case RTE_TYPE(NAMEDTUPLESTORE);
+    #undef RTE_TYPE
+          default:
+            mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown RTEKind number: %S", mrb_fixnum_value(rtekind));
+        }
+}
+
+static mrb_value
+psql_inspect_range_tbl_entry_rtekind(mrb_state *mrb, mrb_value self)
+{
+    RangeTblEntry *rte;
+
+    rte = (RangeTblEntry *)DATA_PTR(self);
+    return psql_inspect_mrb_str_from_RTEKind(mrb, rte->rtekind);
+}
+
+/* TODO: Extract method which convert Oid to mrb_value into outer file  */
+static mrb_value
+psql_inspect_range_tbl_entry_relid(mrb_state *mrb, mrb_value self)
+{
+    RangeTblEntry *rte;
+
+    rte = (RangeTblEntry *)DATA_PTR(self);
+    return mrb_fixnum_value(rte->relid);
+}
+
+static mrb_value
+psql_inspect_range_tbl_entry_relkind(mrb_state *mrb, mrb_value self)
+{
+    RangeTblEntry *rte;
+
+    rte = (RangeTblEntry *)DATA_PTR(self);
+    return mrb_str_new(mrb, &rte->relkind, 1);
+}
+
+static mrb_value
 psql_inspect_range_tbl_entry_build_from_rte(mrb_state *mrb, RangeTblEntry *rte)
 {
     mrb_value val;
@@ -193,5 +242,7 @@ psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, range_tbl_entry_class, "initialize", psql_inspect_range_tbl_entry_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, range_tbl_entry_class, "type", psql_inspect_range_tbl_entry_type, MRB_ARGS_NONE());
-    // mrb_define_method(mrb, range_tbl_entry_class, "rtekind", psql_inspect_range_tbl_entry_rtekind, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_tbl_entry_class, "rtekind", psql_inspect_range_tbl_entry_rtekind, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_tbl_entry_class, "relid", psql_inspect_range_tbl_entry_relid, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_tbl_entry_class, "relkind", psql_inspect_range_tbl_entry_relkind, MRB_ARGS_NONE());
 }
