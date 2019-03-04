@@ -100,6 +100,15 @@ psql_inspect_aggref_args(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_aggref_aggfnoid(mrb_state *mrb, mrb_value self)
+{
+    Aggref *aggref;
+
+    aggref = (Aggref *)DATA_PTR(self);
+    return mrb_fixnum_value(aggref->aggfnoid);
+}
+
+static mrb_value
 psql_inspect_const_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_const_data_type;
@@ -266,6 +275,7 @@ psql_inspect_expr_class_init(mrb_state *mrb, struct RClass *class)
     MRB_SET_INSTANCE_TT(aggref_class, MRB_TT_DATA);
 
     mrb_define_method(mrb, aggref_class, "initialize", psql_inspect_aggref_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, aggref_class, "aggfnoid", psql_inspect_aggref_aggfnoid, MRB_ARGS_NONE());
     mrb_define_method(mrb, aggref_class, "args", psql_inspect_aggref_args, MRB_ARGS_NONE());
 
     /* Const class */

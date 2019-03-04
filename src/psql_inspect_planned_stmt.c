@@ -2,6 +2,7 @@
 #include "optimizer/planner.h"
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
@@ -9,6 +10,7 @@
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_plan.h>
 #include <psql_inspect_planned_stmt.h>
+#include <psql_inspect_query.h>
 
 static struct RClass *class_stmt = NULL;
 static const struct mrb_data_type psql_inspect_planned_stmt_data_type = { "PlannedStmt", mrb_free };
@@ -61,6 +63,32 @@ psql_inspect_planned_stmt_plan_tree(mrb_state *mrb, mrb_value self)
     return psql_inspect_plan_build_from_plan(mrb, stmt->planTree);
 }
 
+static mrb_value
+psql_inspect_planned_stmt_rtable(mrb_state *mrb, mrb_value self)
+{
+    PlannedStmt *stmt;
+
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    stmt = (PlannedStmt *)DATA_PTR(self);
+    array_size = list_length(stmt->rtable);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, stmt->rtable) {
+        mrb_value v;
+        RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+
+        v = psql_inspect_range_tbl_entry_build_from_rte(mrb, rte);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
 void
 psql_inspect_planned_stmt_mruby_env_setup(mrb_state *mrb, PlannedStmt *stmt)
 {
@@ -93,5 +121,5 @@ psql_inspect_planned_stmt_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, class_stmt, "type", psql_inspect_planned_stmt_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "command_type", psql_inspect_planned_stmt_command_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "plan_tree", psql_inspect_planned_stmt_plan_tree, MRB_ARGS_NONE());
-    // mrb_define_method(mrb, class_stmt, "rtable", psql_inspect_planned_stmt_rtable, MRB_ARGS_NONE());
+    mrb_define_method(mrb, class_stmt, "rtable", psql_inspect_planned_stmt_rtable, MRB_ARGS_NONE());
 }

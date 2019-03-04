@@ -89,7 +89,7 @@ psql_inspect_range_tbl_entry_relkind(mrb_state *mrb, mrb_value self)
     return mrb_str_new(mrb, &rte->relkind, 1);
 }
 
-static mrb_value
+mrb_value
 psql_inspect_range_tbl_entry_build_from_rte(mrb_state *mrb, RangeTblEntry *rte)
 {
     mrb_value val;
@@ -151,7 +151,6 @@ psql_inspect_query_rtable(mrb_state *mrb, mrb_value self)
 {
     Query *query;
 
-    query = (Query *)DATA_PTR(self);
     int array_size;
     int i = 0;
     mrb_value ary;
