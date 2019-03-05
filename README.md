@@ -55,3 +55,13 @@ my_db=# select * from films;
 ------+-------+-----+-----------+------+-----
 (0 rows)
 ```
+
+```shell
+my_db=# set session "psql_inspect.ExecutorRun_script" = 'qd = PgInspect::QueryDesc.current_query_desc; p qd.operation';
+SET
+
+my_db=# select * from films;
+ code | title | did | date_prod | kind | len
+------+-------+-----+-----------+------+-----
+(0 rows)
+```

@@ -4,6 +4,7 @@
 #include "parser/analyze.h"
 #include "utils/guc.h"
 #include "utils/elog.h"
+#include "executor/executor.h"
 
 #include <mruby.h>
 #include <mruby/compile.h>
@@ -17,6 +18,7 @@
 #include <psql_inspect_planned_stmt.h>
 #include <psql_inspect_planner_info.h>
 #include <psql_inspect_query.h>
+#include <psql_inspect_query_desc.h>
 #include <psql_inspect_rel_opt_info.h>
 
 PG_MODULE_MAGIC;
@@ -28,12 +30,14 @@ void _PG_fini(void);
 static post_parse_analyze_hook_type prev_post_parse_analyze_hook = NULL;
 static planner_hook_type prev_planner_hook = NULL;
 static set_rel_pathlist_hook_type prev_set_rel_pathlist_hook = NULL;
+static ExecutorRun_hook_type prev_ExecutorRun_hook = NULL;
 
 static mrb_state *mrb_s = NULL;
 
 static const char *post_parse_analyze_script_guc_name = "psql_inspect.post_parse_analyze_script";
 static const char *planner_script_guc_name = "psql_inspect.planner_script";
 static const char *set_rel_pathlist_script_guc_name = "psql_inspect.set_rel_pathlist_script";
+static const char *ExecutorRun_script_guc_name = "psql_inspect.ExecutorRun_script";
 
 // static const char *script = "p [PgInspect::PlannedStmt.current_stmt.type, PgInspect::PlannedStmt.current_stmt.command_type]";
 
@@ -135,6 +139,32 @@ psql_inspect_post_parse_analyze_hook(ParseState *pstate, Query *query)
 }
 
 static void
+psql_inspect_ExecutorRun_hook(QueryDesc *queryDesc, ScanDirection direction, uint64 count, bool execute_once)
+{
+    const char *script;
+
+    /* TODO: use elog debug */
+    fprintf(stderr, "psql_inspect_ExecutorRun_hook with mruby!\n");
+
+    script = psql_inspect_get_script(ExecutorRun_script_guc_name);
+
+    if (script == NULL) {
+        elog(LOG, "You should set \"%s\"", ExecutorRun_script_guc_name);
+        standard_ExecutorRun(queryDesc, direction, count, execute_once);
+        return;
+    }
+
+    psql_inspect_query_desc_mruby_env_setup(mrb_s, queryDesc);
+
+    mrb_load_string(mrb_s, script);
+    psql_inspect_mruby_error_handling(mrb_s);
+
+    psql_inspect_query_desc_mruby_env_tear_down(mrb_s);
+
+    standard_ExecutorRun(queryDesc, direction, count, execute_once);
+}
+
+static void
 psql_inspect_class_init(mrb_state *mrb)
 {
     struct RClass *class;
@@ -150,6 +180,7 @@ psql_inspect_class_init(mrb_state *mrb)
     psql_inspect_expr_class_init(mrb, class);
     psql_inspect_plan_class_init(mrb, class);
     psql_inspect_query_class_init(mrb, class);
+    psql_inspect_query_desc_class_init(mrb, class);
 }
 
 /*
@@ -174,12 +205,21 @@ _PG_init(void)
     /* set_rel_pathlist_hook */
     prev_set_rel_pathlist_hook = set_rel_pathlist_hook;
     set_rel_pathlist_hook = psql_inspect_set_rel_pathlist_hook;
+
+    /* ExecutorRun_hook */
+    prev_ExecutorRun_hook = ExecutorRun_hook;
+    ExecutorRun_hook = psql_inspect_ExecutorRun_hook;
 }
 
 void
 _PG_fini(void)
 {
     fprintf(stderr, "psql_inspect is unloaded!\n");
+
+    /* ExecutorRun_hook */
+    if (ExecutorRun_hook == psql_inspect_ExecutorRun_hook) {
+        ExecutorRun_hook = prev_ExecutorRun_hook;
+    }
 
     /* set_rel_pathlist_hook */
     if (set_rel_pathlist_hook == psql_inspect_set_rel_pathlist_hook) {
@@ -200,6 +240,7 @@ _PG_fini(void)
         psql_inspect_planned_stmt_fini(mrb_s);
         psql_inspect_planner_info_fini(mrb_s);
         psql_inspect_query_fini(mrb_s);
+        psql_inspect_query_desc_fini(mrb_s);
 
         mrb_close(mrb_s);
         mrb_s = NULL;
