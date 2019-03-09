@@ -1,6 +1,6 @@
 P_INSPECT_ROOT=$(shell pwd)/..
 MRUBY_ROOT=$(P_INSPECT_ROOT)/mruby
-SRC_DIR=$(P_INSPECT_ROOT)/src
+SRC_DIR=$(P_INSPECT_ROOT)/plugin
 INCLUDE_DIR=$(P_INSPECT_ROOT)/include
 
 RAKE=rake
