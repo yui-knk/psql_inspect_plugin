@@ -36,6 +36,11 @@ static const struct mrb_data_type psql_inspect_agg_state_per_phase_data_type = {
 static const struct mrb_data_type psql_inspect_plan_state_data_type = { "PlanState", mrb_free };
 static const struct mrb_data_type psql_inspect_agg_state_data_type = { "AggState", mrb_free };
 
+typedef struct ExprEvalStepData {
+    ExprState *exprState; /* Needed for ExecEvalStepOp function */
+    ExprEvalStep *step;
+} ExprEvalStepData_t;
+
 static void
 psql_inspect_planstate_set_planstate(mrb_state *mrb, mrb_value self, PlanState *planstate)
 {
@@ -72,12 +77,17 @@ psql_inspect_agg_state_per_phase_build_from_agg_state_per_phase(mrb_state *mrb, 
 }
 
 static mrb_value
-psql_inspect_expr_eval_step_build_from_expr_eval_step(mrb_state *mrb, ExprEvalStep *step)
+psql_inspect_expr_eval_step_build_from_expr_eval_step(mrb_state *mrb, ExprEvalStep *step, ExprState *exprState)
 {
     mrb_value val;
+    ExprEvalStepData_t *data;
+
+    data = (ExprEvalStepData_t *)mrb_malloc(mrb, sizeof(ExprEvalStepData_t));
+    data->step = step;
+    data->exprState = exprState;
 
     val = mrb_class_new_instance(mrb, 0, NULL, expr_eval_step_class);
-    DATA_PTR(val) = step;
+    DATA_PTR(val) = data;
 
     return val;
 }
@@ -189,7 +199,7 @@ psql_inspect_expr_state_steps(mrb_state *mrb, mrb_value self)
     for (int i = 0; i < exprState->steps_len; i++) {
         mrb_value v;
 
-        v = psql_inspect_expr_eval_step_build_from_expr_eval_step(mrb, &exprState->steps[i]);
+        v = psql_inspect_expr_eval_step_build_from_expr_eval_step(mrb, &exprState->steps[i], exprState);
         mrb_ary_set(mrb, ary, i, v);
     }
 
@@ -302,9 +312,6 @@ psql_inspect_agg_state_per_hash_hashGrpColIdxHash(mrb_state *mrb, mrb_value self
 static mrb_value
 psql_inspect_mrb_str_from_ExprEvalOp(mrb_state *mrb, ExprEvalOp op)
 {
-
-return mrb_fixnum_value(op);
-
 #define EEOP_TYPE(strategy) \
     EEOP_##strategy: return mrb_str_new_cstr(mrb, #strategy);
 
@@ -509,9 +516,21 @@ static mrb_value
 psql_inspect_expr_eval_step_opcode(mrb_state *mrb, mrb_value self)
 {
     ExprEvalStep *step;
+    ExprEvalStepData_t *data;
+    ExprState *exprState;
+    ExprEvalOp op;
 
-    step = (ExprEvalStep *)DATA_PTR(self);
-    return psql_inspect_mrb_str_from_ExprEvalOp(mrb, step->opcode);
+    data = (ExprEvalStepData_t *)DATA_PTR(self);
+    step = data->step;
+    exprState = data->exprState;
+
+    /*
+     * When direct-threading is in use, ExprState->opcode isn't easily
+     * decipherable. This function returns the appropriate enum member.
+     */
+    op = ExecEvalStepOp(exprState, step);
+
+    return psql_inspect_mrb_str_from_ExprEvalOp(mrb, op);
 }
 
 static mrb_value
