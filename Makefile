@@ -12,22 +12,26 @@ MRUBY_LIB=$(MRUBY_ROOT)/build/host/lib
 
 # pg specific
 MODULE_big=psql_inspect
-OBJS=psql_inspect.o \
-     psql_inspect_bitmapset.o \
-     psql_inspect_expr.o \
-     psql_inspect_nodes.o \
-     psql_inspect_path.o \
-     psql_inspect_path_key.o \
-     psql_inspect_plan.o \
-     psql_inspect_planned_stmt.o \
-     psql_inspect_planner_info.o \
-     psql_inspect_query.o \
-     psql_inspect_query_desc.o \
-     psql_inspect_rel_opt_info.o
+OBJS=$(BUILD_DIR)/psql_inspect.o \
+     $(BUILD_DIR)/psql_inspect_bitmapset.o \
+     $(BUILD_DIR)/psql_inspect_expr.o \
+     $(BUILD_DIR)/psql_inspect_nodes.o \
+     $(BUILD_DIR)/psql_inspect_path.o \
+     $(BUILD_DIR)/psql_inspect_path_key.o \
+     $(BUILD_DIR)/psql_inspect_plan.o \
+     $(BUILD_DIR)/psql_inspect_planned_stmt.o \
+     $(BUILD_DIR)/psql_inspect_planner_info.o \
+     $(BUILD_DIR)/psql_inspect_query.o \
+     $(BUILD_DIR)/psql_inspect_query_desc.o \
+     $(BUILD_DIR)/psql_inspect_rel_opt_info.o
 
 PG_CONFIG=pg_config
 SHLIB_LINK=-L$(MRUBY_LIB) -lmruby
 PGXS := $(shell $(PG_CONFIG) --pgxs)
+
+$(BUILD_DIR)/%.o : $(SRC_DIR)/%.c
+	@if test ! -d $(BUILD_DIR); then mkdir -p $(BUILD_DIR); fi
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 include $(PGXS)
 
