@@ -1,4 +1,6 @@
 MRuby::Build.new('host') do |conf|
+  # be sure to include this gem (the cli app)
+  conf.gem File.expand_path(File.dirname(__FILE__))
 
   toolchain :gcc
 

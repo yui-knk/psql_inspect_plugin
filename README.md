@@ -26,6 +26,10 @@ LOAD
 ### Set script
 
 ```shell
+set session "psql_inspect.ExecutorRun_script" = 'p PgInspect::ANSWER';
+```
+
+```shell
 my_db=# set session "psql_inspect.post_parse_analyze_script" = 'cq = PgInspect::Query.current_query; p cq.target_list';
 SET
 
