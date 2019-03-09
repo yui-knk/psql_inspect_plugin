@@ -3,14 +3,12 @@
 ### Build mruby
 
 ```shell
-$ cd src
 $ make build_mruby
 ```
 
 ### Build extension
 
 ```shell
-$ cd src
 $ make
 ```
 
@@ -26,7 +24,10 @@ LOAD
 ### Set script
 
 ```shell
-set session "psql_inspect.ExecutorRun_script" = 'p PgInspect::ANSWER';
+my_db=# set session "psql_inspect.ExecutorRun_script" = 'p PgInspect::ANSWER';
+my_db=# select 1;
+
+# => 42
 ```
 
 ```shell
