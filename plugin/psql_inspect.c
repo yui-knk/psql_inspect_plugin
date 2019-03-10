@@ -7,6 +7,7 @@
 #include "executor/executor.h"
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/compile.h>
 #include <mruby/string.h>
 
@@ -48,20 +49,59 @@ psql_inspect_get_script(const char *script_guc_name)
 }
 
 static void
+psql_inspect_mruby_log_backtrace(mrb_state *mrb, mrb_value obj)
+{
+    if (mrb_type(obj) == MRB_TT_EXCEPTION) {
+        const mrb_value *p;
+        const mrb_value *e;
+
+        mrb_value bt = mrb_funcall(mrb, obj, "backtrace", 0);
+        if (mrb_type(bt) != MRB_TT_ARRAY) {
+            elog(WARNING, "backtrace must be Array. mrb_type=%d", mrb_type(bt));
+            return;
+        }
+
+        p = RARRAY_PTR(bt);
+        e = p + RARRAY_LEN(bt);
+
+        while (p < e) {
+          elog(WARNING, "%*s", RSTRING_LEN(*p), RSTRING_PTR(*p));
+          p++;
+        }
+    }
+}
+
+static void
 psql_inspect_mruby_error_handling(mrb_state *mrb)
 {
     if (mrb->exc != NULL) {
-        mrb_value msg;
-        msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0, NULL);
+        mrb_value exc, msg;
 
-        if (mrb_string_p(msg)) {
+        exc = mrb_obj_value(mrb->exc);
+        msg = mrb_funcall(mrb, exc, "inspect", 0, NULL);
+
+        if (mrb_string_p(msg) && mrb_type(msg) == MRB_TT_STRING) {
             elog(WARNING, "Error is raised in mruby \"%s\"", mrb_string_value_ptr(mrb, msg));
+            psql_inspect_mruby_log_backtrace(mrb, exc);
         } else {
             elog(WARNING, "Some error is raised in mruby but can not detect it...");
         }
 
         mrb->exc = NULL;
     }
+}
+
+static void
+psql_inspect_mrb_load_string(mrb_state *mrb, const char *script)
+{
+    mrbc_context *ctx;
+
+    ctx = mrbc_context_new(mrb);
+    mrbc_filename(mrb, ctx, "psql_inspect");
+
+    /* TODO: Is using mrb_rescue better? We can not touch original error in mrb_rescue */
+    mrb_load_string_cxt(mrb, script, ctx);
+    psql_inspect_mruby_error_handling(mrb);
 }
 
 static void
@@ -80,11 +120,7 @@ psql_inspect_set_rel_pathlist_hook(PlannerInfo *root, RelOptInfo *rel, Index rti
     }
 
     psql_inspect_planner_info_mruby_env_setup(mrb_s, root);
-
-    /* TODO: Is using mrb_rescue better? We can not touch original error in mrb_rescue */
-    mrb_load_string(mrb_s, script);
-    psql_inspect_mruby_error_handling(mrb_s);
-
+    psql_inspect_mrb_load_string(mrb_s, script);
     psql_inspect_planner_info_mruby_env_tear_down(mrb_s);
 }
 
@@ -105,10 +141,7 @@ psql_inspect_planner_hook(Query *parse, int cursorOptions, ParamListInfo boundPa
     }
 
     psql_inspect_planned_stmt_mruby_env_setup(mrb_s, stmt);
-
-    mrb_load_string(mrb_s, script);
-    psql_inspect_mruby_error_handling(mrb_s);
-
+    psql_inspect_mrb_load_string(mrb_s, script);
     psql_inspect_planned_stmt_mruby_env_tear_down(mrb_s);
 
     return stmt;
@@ -130,11 +163,7 @@ psql_inspect_post_parse_analyze_hook(ParseState *pstate, Query *query)
     }
 
     psql_inspect_query_mruby_env_setup(mrb_s, query);
-
-    /* TODO: Is using mrb_rescue better? We can not touch original error in mrb_rescue */
-    mrb_load_string(mrb_s, script);
-    psql_inspect_mruby_error_handling(mrb_s);
-
+    psql_inspect_mrb_load_string(mrb_s, script);
     psql_inspect_query_mruby_env_tear_down(mrb_s);    
 }
 
@@ -155,10 +184,7 @@ psql_inspect_ExecutorRun_hook(QueryDesc *queryDesc, ScanDirection direction, uin
     }
 
     psql_inspect_query_desc_mruby_env_setup(mrb_s, queryDesc);
-
-    mrb_load_string(mrb_s, script);
-    psql_inspect_mruby_error_handling(mrb_s);
-
+    psql_inspect_mrb_load_string(mrb_s, script);
     psql_inspect_query_desc_mruby_env_tear_down(mrb_s);
 
     standard_ExecutorRun(queryDesc, direction, count, execute_once);
