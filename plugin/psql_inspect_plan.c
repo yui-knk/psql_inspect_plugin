@@ -228,6 +228,7 @@ psql_inspect_plan_targetlist(mrb_state *mrb, mrb_value self)
     return ary;
 }
 
+/* input plan tree(s) */
 static mrb_value
 psql_inspect_plan_lefttree(mrb_state *mrb, mrb_value self)
 {
