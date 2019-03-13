@@ -1,7 +1,7 @@
 class PgInspect
   class Expr
     def _pretty_print(pp)
-      pp.add_line "#{self.class}:"
+      pp.add_line "#{self.class} (#{type}):"
     end
   end
 
