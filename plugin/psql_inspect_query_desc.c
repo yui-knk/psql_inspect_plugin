@@ -22,8 +22,12 @@ static struct RClass *expr_eval_step_class = NULL;
 
 static struct RClass *expr_state_class = NULL;
 static struct RClass *plan_state_class = NULL;
+static struct RClass *scan_state_class = NULL;
+static struct RClass *seq_scan_state_class = NULL;
 static struct RClass *agg_state_class = NULL;
 
+static struct RClass *tuple_table_slot_class = NULL;
+static struct RClass *tuple_desc_class = NULL;
 
 static const struct mrb_data_type psql_inspect_query_desc_data_type = { "QueryDesc", mrb_free };
 
@@ -34,7 +38,13 @@ static const struct mrb_data_type psql_inspect_expr_eval_step_data_type = { "Exp
 
 static const struct mrb_data_type psql_inspect_agg_state_per_phase_data_type = { "AggStatePerPhase", mrb_free };
 static const struct mrb_data_type psql_inspect_plan_state_data_type = { "PlanState", mrb_free };
+static const struct mrb_data_type psql_inspect_scan_state_data_type = { "ScanState", mrb_free };
+static const struct mrb_data_type psql_inspect_seq_scan_state_data_type = { "SeqScanState", mrb_free };
 static const struct mrb_data_type psql_inspect_agg_state_data_type = { "AggState", mrb_free };
+
+static const struct mrb_data_type psql_inspect_tuple_table_slot_data_type = { "TupleTableSlot", mrb_free };
+static const struct mrb_data_type psql_inspect_tuple_desc_data_type = { "TupleDesc", mrb_free };
+
 
 typedef struct ExprEvalStepData {
     ExprState *exprState; /* Needed for ExecEvalStepOp function */
@@ -56,6 +66,9 @@ psql_inspect_planstate_build_from_planstate(mrb_state *mrb, PlanState *planstate
       case T_AggState:
         val = mrb_class_new_instance(mrb, 0, NULL, agg_state_class);
         break;
+      case T_SeqScanState:
+        val = mrb_class_new_instance(mrb, 0, NULL, seq_scan_state_class);
+        break;
       default:
         val = mrb_class_new_instance(mrb, 0, NULL, plan_state_class);
     }
@@ -72,6 +85,28 @@ psql_inspect_agg_state_per_phase_build_from_agg_state_per_phase(mrb_state *mrb, 
 
     val = mrb_class_new_instance(mrb, 0, NULL, agg_state_per_phase_class);
     DATA_PTR(val) = phase;
+
+    return val;
+}
+
+static mrb_value
+psql_inspect_TupleDesc_build_from_TupleDesc(mrb_state *mrb, TupleDesc tupdesc)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, tuple_desc_class);
+    DATA_PTR(val) = tupdesc;
+
+    return val;
+}
+
+static mrb_value
+psql_inspect_ScanTupleSlot_build_from_ScanTupleSlot(mrb_state *mrb, TupleTableSlot *tuple)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, tuple_table_slot_class);
+    DATA_PTR(val) = tuple;
 
     return val;
 }
@@ -108,6 +143,22 @@ static mrb_value
 psql_inspect_query_desc_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_query_desc_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_tuple_table_slot_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_tuple_table_slot_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_tuple_desc_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_tuple_desc_data_type;
 
     return self;
 }
@@ -153,6 +204,22 @@ psql_inspect_plan_state_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_scan_state_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_scan_state_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_seq_scan_state_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_seq_scan_state_data_type;
+
+    return self;
+}
+
+static mrb_value
 psql_inspect_agg_state_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_agg_state_data_type;
@@ -176,6 +243,33 @@ psql_inspect_query_desc_planstate(mrb_state *mrb, mrb_value self)
 
     queryDesc = (QueryDesc *)DATA_PTR(self);
     return psql_inspect_planstate_build_from_planstate(mrb, queryDesc->planstate);
+}
+
+static mrb_value
+psql_inspect_tuple_table_slot_tts_tupleDescriptor(mrb_state *mrb, mrb_value self)
+{
+    TupleTableSlot *tuple;
+
+    tuple = (TupleTableSlot *)DATA_PTR(self);
+    return psql_inspect_TupleDesc_build_from_TupleDesc(mrb, tuple->tts_tupleDescriptor);
+}
+
+static mrb_value
+psql_inspect_tuple_table_slot_tts_fixedTupleDescriptor(mrb_state *mrb, mrb_value self)
+{
+    TupleTableSlot *tuple;
+
+    tuple = (TupleTableSlot *)DATA_PTR(self);
+    return mrb_bool_value(tuple->tts_fixedTupleDescriptor);
+}
+
+static mrb_value
+psql_inspect_tuple_desc_natts(mrb_state *mrb, mrb_value self)
+{
+    TupleDesc tupdesc;
+
+    tupdesc = (TupleDesc)DATA_PTR(self);
+    return mrb_fixnum_value(tupdesc->natts);
 }
 
 static mrb_value
@@ -206,7 +300,6 @@ psql_inspect_expr_state_steps(mrb_state *mrb, mrb_value self)
     return ary;
 }
 
-
 static mrb_value
 psql_inspect_plan_state_type(mrb_state *mrb, mrb_value self)
 {
@@ -214,6 +307,15 @@ psql_inspect_plan_state_type(mrb_state *mrb, mrb_value self)
 
     plan = (Plan *)DATA_PTR(self);
     return psql_inspect_mrb_str_from_NodeTag(mrb, plan->type);
+}
+
+static mrb_value
+psql_inspect_scan_state_ss_ScanTupleSlot(mrb_state *mrb, mrb_value self)
+{
+    ScanState *ss;
+
+    ss = (ScanState *)DATA_PTR(self);
+    return psql_inspect_ScanTupleSlot_build_from_ScanTupleSlot(mrb, ss->ss_ScanTupleSlot);
 }
 
 static void
@@ -657,6 +759,19 @@ psql_inspect_query_desc_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, query_desc_class, "operation", psql_inspect_query_desc_operation, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_desc_class, "planstate", psql_inspect_query_desc_planstate, MRB_ARGS_NONE());
 
+    /* TODO: Move this class to another file */
+    /* TupleTableSlot */
+    tuple_table_slot_class = mrb_define_class_under(mrb, class, "TupleTableSlot", mrb->object_class);
+    mrb_define_method(mrb, tuple_table_slot_class, "initialize", psql_inspect_tuple_table_slot_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_table_slot_class, "tts_tupleDescriptor", psql_inspect_tuple_table_slot_tts_tupleDescriptor, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_table_slot_class, "tts_fixedTupleDescriptor", psql_inspect_tuple_table_slot_tts_fixedTupleDescriptor, MRB_ARGS_NONE());
+
+    /* TODO: Move this class to another file */
+    /* TupleDesc */
+    tuple_desc_class = mrb_define_class_under(mrb, class, "TupleDesc", mrb->object_class);
+    mrb_define_method(mrb, tuple_desc_class, "initialize", psql_inspect_tuple_desc_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_desc_class, "natts", psql_inspect_tuple_desc_natts, MRB_ARGS_NONE());
+
     /* ExprState */
     expr_state_class = mrb_define_class_under(mrb, class, "ExprState", mrb->object_class);
     MRB_SET_INSTANCE_TT(expr_state_class, MRB_TT_DATA);
@@ -671,6 +786,19 @@ psql_inspect_query_desc_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, plan_state_class, "initialize", psql_inspect_plan_state_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_state_class, "type", psql_inspect_plan_state_type, MRB_ARGS_NONE());
+
+    /* ScanState */
+    scan_state_class = mrb_define_class_under(mrb, class, "ScanState", plan_state_class);
+    MRB_SET_INSTANCE_TT(scan_state_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, scan_state_class, "initialize", psql_inspect_scan_state_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, scan_state_class, "ss_ScanTupleSlot", psql_inspect_scan_state_ss_ScanTupleSlot, MRB_ARGS_NONE());
+
+    /* SeqScanState */
+    seq_scan_state_class = mrb_define_class_under(mrb, class, "SeqScanState", scan_state_class);
+    MRB_SET_INSTANCE_TT(seq_scan_state_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, seq_scan_state_class, "initialize", psql_inspect_seq_scan_state_init, MRB_ARGS_NONE());
 
     /* AggStatePerHash */
     agg_state_per_hash_class = mrb_define_class_under(mrb, class, "AggStatePerHash", mrb->object_class);
