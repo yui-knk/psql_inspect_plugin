@@ -490,6 +490,17 @@ psql_inspect_node_type(mrb_state *mrb, mrb_value self)
     return psql_inspect_mrb_str_from_NodeTag(mrb, node->type);
 }
 
+mrb_value
+psql_inspect_node_build_from_node(mrb_state *mrb, Node *node)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+    DATA_PTR(val) = node;
+
+    return val;
+}
+
 
 void
 psql_inspect_node_fini(mrb_state *mrb)

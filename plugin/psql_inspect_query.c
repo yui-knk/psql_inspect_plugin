@@ -1,5 +1,6 @@
 #include "postgres.h"
 #include "nodes/parsenodes.h"
+#include "nodes/primnodes.h"
 
 #include <mruby.h>
 #include <mruby/array.h>
@@ -14,13 +15,24 @@
 static struct RClass *query_class = NULL;
 static struct RClass *range_tbl_entry_class = NULL;
 
+static struct RClass *from_expr_class = NULL;
+
 static const struct mrb_data_type psql_inspect_query_data_type = { "Query", mrb_free };
 static const struct mrb_data_type psql_inspect_range_tbl_entry_data_type = { "RangeTblEntry", mrb_free };
+static const struct mrb_data_type psql_inspect_from_expr_data_type = { "FromExpr", mrb_free };
 
 static mrb_value
 psql_inspect_range_tbl_entry_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_range_tbl_entry_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_from_expr_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_from_expr_data_type;
 
     return self;
 }
@@ -99,6 +111,17 @@ psql_inspect_range_tbl_entry_build_from_rte(mrb_state *mrb, RangeTblEntry *rte)
     return val;
 }
 
+static mrb_value
+psql_inspect_from_expr_build_from_from_expr(mrb_state *mrb, FromExpr *from)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, from_expr_class);
+    DATA_PTR(val) = from;
+
+    return val;
+}
+
 static void
 psql_inspect_query_set_query(mrb_state *mrb, mrb_value self, Query *query)
 {
@@ -138,6 +161,15 @@ psql_inspect_query_command_type(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_query_queryId(mrb_state *mrb, mrb_value self)
+{
+    Query *query;
+
+    query = (Query *)DATA_PTR(self);
+    return mrb_fixnum_value(query->queryId);
+}
+
+static mrb_value
 psql_inspect_query_has_aggs(mrb_state *mrb, mrb_value self)
 {
     Query *query;
@@ -172,6 +204,16 @@ psql_inspect_query_rtable(mrb_state *mrb, mrb_value self)
     return ary;
 }
 
+/* table join tree (FROM and WHERE clauses) */
+static mrb_value
+psql_inspect_query_jointree(mrb_state *mrb, mrb_value self)
+{
+    Query *query;
+
+    query = (Query *)DATA_PTR(self);
+    return psql_inspect_from_expr_build_from_from_expr(mrb, query->jointree);
+}
+
 static mrb_value
 psql_inspect_query_target_list(mrb_state *mrb, mrb_value self)
 {
@@ -195,6 +237,18 @@ psql_inspect_query_target_list(mrb_state *mrb, mrb_value self)
     }
 
     return ary;
+}
+
+static mrb_value
+psql_inspect_from_expr_quals(mrb_state *mrb, mrb_value self)
+{
+    FromExpr *from;
+
+    from = (FromExpr *)DATA_PTR(self);
+
+    if (from->quals == NULL)
+        return mrb_nil_value();
+    return psql_inspect_node_build_from_node(mrb, from->quals);
 }
 
 void
@@ -229,8 +283,19 @@ psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, query_class, "initialize", psql_inspect_query_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "type", psql_inspect_query_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "command_type", psql_inspect_query_command_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, query_class, "queryId", psql_inspect_query_queryId, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "resultRelation", psql_inspect_query_resultRelation, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "has_aggs", psql_inspect_query_has_aggs, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasWindowFuncs", psql_inspect_query_hasWindowFuncs, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasTargetSRFs", psql_inspect_query_hasTargetSRFs, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasSubLinks", psql_inspect_query_hasSubLinks, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasDistinctOn", psql_inspect_query_hasDistinctOn, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasRecursive", psql_inspect_query_hasRecursive, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasModifyingCTE", psql_inspect_query_hasModifyingCTE, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasForUpdate", psql_inspect_query_hasForUpdate, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, query_class, "hasRowSecurity", psql_inspect_query_hasRowSecurity, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "rtable", psql_inspect_query_rtable, MRB_ARGS_NONE());
+    mrb_define_method(mrb, query_class, "jointree", psql_inspect_query_jointree, MRB_ARGS_NONE());
     mrb_define_method(mrb, query_class, "target_list", psql_inspect_query_target_list, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "group_clause", psql_inspect_query_group_clause, MRB_ARGS_NONE());
     // mrb_define_method(mrb, query_class, "sort_clause", psql_inspect_query_sort_clause, MRB_ARGS_NONE());
@@ -244,4 +309,12 @@ psql_inspect_query_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, range_tbl_entry_class, "rtekind", psql_inspect_range_tbl_entry_rtekind, MRB_ARGS_NONE());
     mrb_define_method(mrb, range_tbl_entry_class, "relid", psql_inspect_range_tbl_entry_relid, MRB_ARGS_NONE());
     mrb_define_method(mrb, range_tbl_entry_class, "relkind", psql_inspect_range_tbl_entry_relkind, MRB_ARGS_NONE());
+
+    /* FromExpr class */
+    from_expr_class = mrb_define_class_under(mrb, class, "FromExpr", psql_inspect_node_class);
+    MRB_SET_INSTANCE_TT(from_expr_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, from_expr_class, "initialize", psql_inspect_from_expr_init, MRB_ARGS_NONE());
+    // mrb_define_method(mrb, from_expr_class, "fromlist", psql_inspect_from_expr_fromlist, MRB_ARGS_NONE());
+    mrb_define_method(mrb, from_expr_class, "quals", psql_inspect_from_expr_quals, MRB_ARGS_NONE());
 }
