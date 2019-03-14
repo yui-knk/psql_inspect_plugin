@@ -13,6 +13,7 @@
 
 #include <psql_inspect_bitmapset.h>
 #include <psql_inspect_expr.h>
+#include <psql_inspect_nodes.h>
 #include <psql_inspect_path.h>
 #include <psql_inspect_path_key.h>
 #include <psql_inspect_plan.h>
@@ -197,6 +198,9 @@ psql_inspect_class_init(mrb_state *mrb)
 
     class = mrb_define_class(mrb, "PgInspect", mrb->object_class);
 
+    /* This should be first because other classes depend on psql_inspect_node_class */
+    psql_inspect_node_class_init(mrb, class);
+
     psql_inspect_bitmapset_class_init(mrb, class);
     psql_inspect_planned_stmt_class_init(mrb, class);
     psql_inspect_planner_info_class_init(mrb, class);
@@ -267,6 +271,9 @@ _PG_fini(void)
         psql_inspect_planner_info_fini(mrb_s);
         psql_inspect_query_fini(mrb_s);
         psql_inspect_query_desc_fini(mrb_s);
+
+        /* This should be last, see psql_inspect_class_init */
+        psql_inspect_node_fini(mrb_s);
 
         mrb_close(mrb_s);
         mrb_s = NULL;

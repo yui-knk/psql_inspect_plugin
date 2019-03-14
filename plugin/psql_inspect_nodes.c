@@ -2,8 +2,21 @@
 #include "nodes/nodes.h"
 
 #include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
 
 #include <psql_inspect_nodes.h>
+
+struct RClass *psql_inspect_node_class = NULL;
+static const struct mrb_data_type psql_inspect_node_data_type = { "Node", mrb_free };
+
+static mrb_value
+psql_inspect_node_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_node_data_type;
+
+    return self;
+}
 
 mrb_value
 psql_inspect_mrb_str_from_NodeTag(mrb_state *mrb, NodeTag type)
@@ -467,3 +480,31 @@ psql_inspect_mrb_str_from_AggStrategy(mrb_state *mrb, AggStrategy strategy)
         mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown command strategy number: %S", mrb_fixnum_value(strategy));
     }
 }
+
+static mrb_value
+psql_inspect_node_type(mrb_state *mrb, mrb_value self)
+{
+    Node *node;
+
+    node = (Node *)DATA_PTR(self);
+    return psql_inspect_mrb_str_from_NodeTag(mrb, node->type);
+}
+
+
+void
+psql_inspect_node_fini(mrb_state *mrb)
+{
+    psql_inspect_node_class = NULL;
+}
+
+void
+psql_inspect_node_class_init(mrb_state *mrb, struct RClass *class)
+{
+    /* Node class */
+    psql_inspect_node_class = mrb_define_class_under(mrb, class, "Node", mrb->object_class);
+    MRB_SET_INSTANCE_TT(psql_inspect_node_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, psql_inspect_node_class, "initialize", psql_inspect_node_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, psql_inspect_node_class, "type", psql_inspect_node_type, MRB_ARGS_NONE());
+}
+
