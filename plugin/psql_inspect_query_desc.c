@@ -246,6 +246,42 @@ psql_inspect_query_desc_planstate(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_tuple_table_slot_tts_isempty(mrb_state *mrb, mrb_value self)
+{
+    TupleTableSlot *tuple;
+
+    tuple = (TupleTableSlot *)DATA_PTR(self);
+    return mrb_bool_value(tuple->tts_isempty);
+}
+
+static mrb_value
+psql_inspect_tuple_table_slot_tts_shouldFree(mrb_state *mrb, mrb_value self)
+{
+    TupleTableSlot *tuple;
+
+    tuple = (TupleTableSlot *)DATA_PTR(self);
+    return mrb_bool_value(tuple->tts_shouldFree);
+}
+
+static mrb_value
+psql_inspect_tuple_table_slot_tts_shouldFreeMin(mrb_state *mrb, mrb_value self)
+{
+    TupleTableSlot *tuple;
+
+    tuple = (TupleTableSlot *)DATA_PTR(self);
+    return mrb_bool_value(tuple->tts_shouldFreeMin);
+}
+
+static mrb_value
+psql_inspect_tuple_table_slot_tts_slow(mrb_state *mrb, mrb_value self)
+{
+    TupleTableSlot *tuple;
+
+    tuple = (TupleTableSlot *)DATA_PTR(self);
+    return mrb_bool_value(tuple->tts_slow);
+}
+
+static mrb_value
 psql_inspect_tuple_table_slot_tts_tupleDescriptor(mrb_state *mrb, mrb_value self)
 {
     TupleTableSlot *tuple;
@@ -763,6 +799,10 @@ psql_inspect_query_desc_class_init(mrb_state *mrb, struct RClass *class)
     /* TupleTableSlot */
     tuple_table_slot_class = mrb_define_class_under(mrb, class, "TupleTableSlot", mrb->object_class);
     mrb_define_method(mrb, tuple_table_slot_class, "initialize", psql_inspect_tuple_table_slot_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_table_slot_class, "tts_isempty", psql_inspect_tuple_table_slot_tts_isempty, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_table_slot_class, "tts_shouldFree", psql_inspect_tuple_table_slot_tts_shouldFree, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_table_slot_class, "tts_shouldFreeMin", psql_inspect_tuple_table_slot_tts_shouldFreeMin, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_table_slot_class, "tts_slow", psql_inspect_tuple_table_slot_tts_slow, MRB_ARGS_NONE());
     mrb_define_method(mrb, tuple_table_slot_class, "tts_tupleDescriptor", psql_inspect_tuple_table_slot_tts_tupleDescriptor, MRB_ARGS_NONE());
     mrb_define_method(mrb, tuple_table_slot_class, "tts_fixedTupleDescriptor", psql_inspect_tuple_table_slot_tts_fixedTupleDescriptor, MRB_ARGS_NONE());
 
