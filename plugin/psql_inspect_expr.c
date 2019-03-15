@@ -16,6 +16,7 @@ static struct RClass *relabel_type_class = NULL;
 static struct RClass *var_class = NULL;
 static struct RClass *aggref_class = NULL;
 static struct RClass *const_class = NULL;
+static struct RClass *op_expr_class = NULL;
 static struct RClass *target_entry_class = NULL;
 
 static const struct mrb_data_type psql_inspect_expr_data_type = { "Expr", mrb_free };
@@ -23,10 +24,8 @@ static const struct mrb_data_type psql_inspect_relabel_type_data_type = { "Relab
 static const struct mrb_data_type psql_inspect_var_data_type = { "Var", mrb_free };
 static const struct mrb_data_type psql_inspect_aggref_data_type = { "Aggref", mrb_free };
 static const struct mrb_data_type psql_inspect_const_data_type = { "Const", mrb_free };
+static const struct mrb_data_type psql_inspect_op_expr_type = { "OpExpr", mrb_free };
 static const struct mrb_data_type psql_inspect_target_entry_data_type = { "TargetEntry", mrb_free };
-
-mrb_value psql_inspect_expr_build_from_expr(mrb_state *mrb, Expr *expr);
-
 
 static void
 psql_inspect_expr_set_expr(mrb_state *mrb, mrb_value self, Expr *expr)
@@ -117,6 +116,14 @@ psql_inspect_const_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_op_expr_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_op_expr_type;
+
+    return self;
+}
+
+static mrb_value
 psql_inspect_const_consttype(mrb_state *mrb, mrb_value self)
 {
     Const *c;
@@ -141,6 +148,85 @@ psql_inspect_const_constvalue(mrb_state *mrb, mrb_value self)
     c = (Const *)DATA_PTR(self);
 
     return mrb_fixnum_value(c->constvalue);
+}
+
+static mrb_value
+psql_inspect_op_expr_opno(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    expr = (OpExpr *)DATA_PTR(self);
+
+    return mrb_fixnum_value(expr->opno);
+}
+
+static mrb_value
+psql_inspect_op_expr_opfuncid(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    expr = (OpExpr *)DATA_PTR(self);
+
+    return mrb_fixnum_value(expr->opfuncid);
+}
+
+static mrb_value
+psql_inspect_op_expr_opresulttype(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    expr = (OpExpr *)DATA_PTR(self);
+
+    return mrb_fixnum_value(expr->opresulttype);
+}
+
+static mrb_value
+psql_inspect_op_expr_opretset(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    expr = (OpExpr *)DATA_PTR(self);
+
+    return mrb_bool_value(expr->opretset);
+}
+
+static mrb_value
+psql_inspect_op_expr_opcollid(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    expr = (OpExpr *)DATA_PTR(self);
+
+    return mrb_bool_value(expr->opcollid);
+}
+
+static mrb_value
+psql_inspect_op_expr_inputcollid(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    expr = (OpExpr *)DATA_PTR(self);
+
+    return mrb_bool_value(expr->inputcollid);
+}
+
+static mrb_value
+psql_inspect_op_expr_args(mrb_state *mrb, mrb_value self)
+{
+    OpExpr *expr;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    expr = (OpExpr *)DATA_PTR(self);
+    array_size = list_length(expr->args);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, expr->args) {
+        mrb_value v;
+        Expr *arg = (Expr *) lfirst(lc);
+
+        v = psql_inspect_expr_build_from_expr(mrb, arg);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
 }
 
 static mrb_value
@@ -193,6 +279,9 @@ psql_inspect_expr_build_from_expr(mrb_state *mrb, Expr *expr)
         break;
       case T_Const:
         val = mrb_class_new_instance(mrb, 0, NULL, const_class);
+        break;
+      case T_OpExpr:
+        val = mrb_class_new_instance(mrb, 0, NULL, op_expr_class);
         break;
       case T_Aggref:
         val = mrb_class_new_instance(mrb, 0, NULL, aggref_class);
@@ -286,6 +375,19 @@ psql_inspect_expr_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, const_class, "consttype", psql_inspect_const_consttype, MRB_ARGS_NONE());
     mrb_define_method(mrb, const_class, "constlen", psql_inspect_const_constlen, MRB_ARGS_NONE());
     mrb_define_method(mrb, const_class, "constvalue", psql_inspect_const_constvalue, MRB_ARGS_NONE());
+
+    /* OpExpr class */
+    op_expr_class = mrb_define_class_under(mrb, class, "OpExpr", expr_class);
+    MRB_SET_INSTANCE_TT(op_expr_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, op_expr_class, "initialize", psql_inspect_op_expr_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "opno", psql_inspect_op_expr_opno, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "opfuncid", psql_inspect_op_expr_opfuncid, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "opresulttype", psql_inspect_op_expr_opresulttype, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "opretset", psql_inspect_op_expr_opretset, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "opcollid", psql_inspect_op_expr_opcollid, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "inputcollid", psql_inspect_op_expr_inputcollid, MRB_ARGS_NONE());
+    mrb_define_method(mrb, op_expr_class, "args", psql_inspect_op_expr_args, MRB_ARGS_NONE());
 
     /* TargetEntry class */
     target_entry_class = mrb_define_class_under(mrb, class, "TargetEntry", expr_class);

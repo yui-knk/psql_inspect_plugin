@@ -248,7 +248,7 @@ psql_inspect_from_expr_quals(mrb_state *mrb, mrb_value self)
 
     if (from->quals == NULL)
         return mrb_nil_value();
-    return psql_inspect_node_build_from_node(mrb, from->quals);
+    return psql_inspect_expr_build_from_expr(mrb, (Expr *)from->quals);
 }
 
 void
