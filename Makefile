@@ -16,6 +16,7 @@ OBJS=$(BUILD_DIR)/psql_inspect.o \
      $(BUILD_DIR)/psql_inspect_bitmapset.o \
      $(BUILD_DIR)/psql_inspect_expr.o \
      $(BUILD_DIR)/psql_inspect_nodes.o \
+     $(BUILD_DIR)/psql_inspect_parse_state.o \
      $(BUILD_DIR)/psql_inspect_path.o \
      $(BUILD_DIR)/psql_inspect_path_key.o \
      $(BUILD_DIR)/psql_inspect_plan.o \

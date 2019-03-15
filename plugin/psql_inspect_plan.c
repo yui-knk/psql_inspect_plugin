@@ -21,8 +21,6 @@ static const struct mrb_data_type psql_inspect_agg_data_type = { "Agg", mrb_free
 static const struct mrb_data_type psql_inspect_sort_data_type = { "Sort", mrb_free };
 static const struct mrb_data_type psql_inspect_seq_scan_data_type = { "SeqScan", mrb_free };
 
-mrb_value psql_inspect_plan_build_from_plan(mrb_state *mrb, Plan *plan);
-
 static void
 psql_inspect_plan_set_plan(mrb_state *mrb, mrb_value self, Plan *plan)
 {
