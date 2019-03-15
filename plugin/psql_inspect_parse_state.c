@@ -1,16 +1,21 @@
 #include "postgres.h"
 #include "parser/parse_node.h"
+#include "tcop/tcopprot.h"
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
 
+#include <psql_inspect_nodes.h>
 #include <psql_inspect_parse_state.h>
 
 static struct RClass *parse_state_class = NULL;
+static struct RClass *raw_stmt_class = NULL;
 
 static const struct mrb_data_type psql_inspect_parse_state_data_type = { "ParseState", mrb_free };
+static const struct mrb_data_type psql_inspect_raw_stmt_data_type = { "RawStmt", mrb_free };
 
 mrb_value
 psql_inspect_parse_state_build_from_parse_state(mrb_state *mrb, ParseState *state)
@@ -32,12 +37,67 @@ psql_inspect_parse_state_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+psql_inspect_raw_stmt_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_raw_stmt_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_raw_stmt_build_from_raw_stmt(mrb_state *mrb, RawStmt *stmt)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, raw_stmt_class);
+    DATA_PTR(val) = stmt;
+
+    return val;
+}
+
+static mrb_value
 psql_inspect_parse_state_sourcetext(mrb_state *mrb, mrb_value self)
 {
     ParseState *state;
 
     state = DATA_PTR(self);
     return mrb_str_new_cstr(mrb, state->p_sourcetext);
+}
+
+static mrb_value
+psql_inspect_parse_state_parsetree_list(mrb_state *mrb, mrb_value self)
+{
+    ParseState *state;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    List *parsetree_list;
+    ListCell *parsetree_item;
+
+    state = (ParseState *)DATA_PTR(self);
+    parsetree_list = pg_parse_query(state->p_sourcetext);
+    array_size = list_length(parsetree_list);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(parsetree_item, parsetree_list) {
+        mrb_value v;
+        RawStmt *parsetree = lfirst_node(RawStmt, parsetree_item);
+
+        v = psql_inspect_raw_stmt_build_from_raw_stmt(mrb, parsetree);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
+static mrb_value
+psql_inspect_raw_stmt_stmt(mrb_state *mrb, mrb_value self)
+{
+    RawStmt *stmt;
+
+    stmt = (RawStmt *)DATA_PTR(self);
+    return psql_inspect_node_build_from_node(mrb, stmt->stmt);
 }
 
 static mrb_value
@@ -78,4 +138,11 @@ psql_inspect_parse_state_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, parse_state_class, "initialize", psql_inspect_parse_state_init, MRB_ARGS_NONE());
     /*  const char *p_sourcetext; */
     mrb_define_method(mrb, parse_state_class, "sourcetext", psql_inspect_parse_state_sourcetext, MRB_ARGS_NONE());
+    mrb_define_method(mrb, parse_state_class, "parsetree_list", psql_inspect_parse_state_parsetree_list, MRB_ARGS_NONE());
+
+    /* RawStmt class */
+    raw_stmt_class = mrb_define_class_under(mrb, class, "RawStmt", psql_inspect_node_class);
+    MRB_SET_INSTANCE_TT(raw_stmt_class, MRB_TT_DATA);
+    mrb_define_method(mrb, raw_stmt_class, "initialize", psql_inspect_raw_stmt_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, raw_stmt_class, "stmt", psql_inspect_raw_stmt_stmt, MRB_ARGS_NONE());
 }
