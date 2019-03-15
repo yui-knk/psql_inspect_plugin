@@ -1,7 +1,7 @@
 class PgInspect
   class Query
     def _pretty_print(pp)
-      pp.add_line "Query: #{command_type}(#{queryId})"
+      pp.add_line "Query: #{command_type}(id: #{queryId})"
 
       pp.with_indent_inc do
         pp.add_line "jointree"
