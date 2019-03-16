@@ -87,9 +87,33 @@ class PgInspect
     end
   end
 
+  class ResTarget < Node
+    def _pretty_print(pp)
+      pp.add_line "ResTarget: name: #{name}, indirection: #{indirection.join(', ')}"
+
+      if val
+        pp.with_indent_inc do
+          pp.add_line "val"
+          pp.with_indent_inc do
+            val._pretty_print(pp)
+          end
+        end
+      end
+    end
+  end
+
   class SelectStmt < Node
     def _pretty_print(pp)
       pp.add_line "SelectStmt:"
+
+      pp.with_indent_inc do
+        pp.add_line "targetList"
+        pp.with_indent_inc do
+          targetList.each do |f|
+            f._pretty_print(pp)
+          end
+        end
+      end
 
       pp.with_indent_inc do
         pp.add_line "fromClause"
