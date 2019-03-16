@@ -18,6 +18,8 @@ static struct RClass *aggref_class = NULL;
 static struct RClass *const_class = NULL;
 static struct RClass *op_expr_class = NULL;
 static struct RClass *target_entry_class = NULL;
+static struct RClass *range_var_class = NULL;
+
 
 static const struct mrb_data_type psql_inspect_expr_data_type = { "Expr", mrb_free };
 static const struct mrb_data_type psql_inspect_relabel_type_data_type = { "RelabelType", mrb_free };
@@ -26,6 +28,7 @@ static const struct mrb_data_type psql_inspect_aggref_data_type = { "Aggref", mr
 static const struct mrb_data_type psql_inspect_const_data_type = { "Const", mrb_free };
 static const struct mrb_data_type psql_inspect_op_expr_type = { "OpExpr", mrb_free };
 static const struct mrb_data_type psql_inspect_target_entry_data_type = { "TargetEntry", mrb_free };
+static const struct mrb_data_type psql_inspect_range_var_data_type = { "RangeVar", mrb_free };
 
 static mrb_value
 psql_inspect_expr_init(mrb_state *mrb, mrb_value self)
@@ -55,6 +58,14 @@ static mrb_value
 psql_inspect_target_entry_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_target_entry_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_range_var_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_range_var_data_type;
 
     return self;
 }
@@ -259,6 +270,33 @@ psql_inspect_target_entry_resjunk(mrb_state *mrb, mrb_value self)
     return mrb_bool_value(tle->resjunk);
 }
 
+static mrb_value
+psql_inspect_range_var_catalogname(mrb_state *mrb, mrb_value self)
+{
+    RangeVar *r_var;
+
+    r_var = (RangeVar *)DATA_PTR(self);
+    return mrb_str_new_cstr(mrb, r_var->catalogname);
+}
+
+static mrb_value
+psql_inspect_range_var_schemaname(mrb_state *mrb, mrb_value self)
+{
+    RangeVar *r_var;
+
+    r_var = (RangeVar *)DATA_PTR(self);
+    return mrb_str_new_cstr(mrb, r_var->schemaname);
+}
+
+static mrb_value
+psql_inspect_range_var_relname(mrb_state *mrb, mrb_value self)
+{
+    RangeVar *r_var;
+
+    r_var = (RangeVar *)DATA_PTR(self);
+    return mrb_str_new_cstr(mrb, r_var->relname);
+}
+
 mrb_value
 psql_inspect_primnode_build_from_node(mrb_state *mrb, Node *node)
 {
@@ -282,6 +320,9 @@ psql_inspect_primnode_build_from_node(mrb_state *mrb, Node *node)
         break;
       case T_TargetEntry:
         val = mrb_class_new_instance(mrb, 0, NULL, target_entry_class);
+        break;
+      case T_RangeVar:
+        val = mrb_class_new_instance(mrb, 0, NULL, range_var_class);
         break;
       default:
         val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
@@ -307,6 +348,7 @@ psql_inspect_primnode_build_from_expr(mrb_state *mrb, Expr *expr)
         val = psql_inspect_primnode_build_from_node(mrb, (Node *)expr);
         break;
       default:
+        /* TODO: should we raise error here, e.g. T_RangeVar */
         val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
     }
 
@@ -428,4 +470,13 @@ psql_inspect_primnodes_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, target_entry_class, "resno", psql_inspect_target_entry_resno, MRB_ARGS_NONE());
     mrb_define_method(mrb, target_entry_class, "resname", psql_inspect_target_entry_resname, MRB_ARGS_NONE());
     mrb_define_method(mrb, target_entry_class, "resjunk", psql_inspect_target_entry_resjunk, MRB_ARGS_NONE());
+
+    /* RangeVar class */
+    range_var_class = mrb_define_class_under(mrb, class, "RangeVar", psql_inspect_node_class);
+    MRB_SET_INSTANCE_TT(range_var_class, MRB_TT_DATA);
+
+    mrb_define_method(mrb, range_var_class, "initialize", psql_inspect_range_var_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_var_class, "catalogname", psql_inspect_range_var_catalogname, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_var_class, "schemaname", psql_inspect_range_var_schemaname, MRB_ARGS_NONE());
+    mrb_define_method(mrb, range_var_class, "relname", psql_inspect_range_var_relname, MRB_ARGS_NONE());
 }

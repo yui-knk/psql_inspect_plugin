@@ -149,7 +149,7 @@ psql_inspect_select_stmt_fromClause(mrb_state *mrb, mrb_value self)
         mrb_value v;
         Node *n = lfirst(lc);
 
-        v = psql_inspect_parsenode_build_from_parsenode(mrb, n);
+        v = psql_inspect_node_build_from_node(mrb, n);
         mrb_ary_set(mrb, ary, i, v);
         i++;
     }

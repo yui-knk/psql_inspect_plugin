@@ -33,6 +33,24 @@ class PgInspect
     end
   end
 
+  class RangeVar < Node
+    def _pretty_print(pp)
+      pp.add_line "RangeVar:"
+
+      pp.with_indent_inc do
+        pp.add_line "catalogname: #{catalogname}"
+      end
+
+      pp.with_indent_inc do
+        pp.add_line "schemaname: #{schemaname}"
+      end
+
+      pp.with_indent_inc do
+        pp.add_line "relname: #{relname}"
+      end
+    end
+  end
+
   class SelectStmt < Node
     def _pretty_print(pp)
       pp.add_line "SelectStmt:"
