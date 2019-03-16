@@ -1,13 +1,22 @@
 class PgInspect
   class Plan
     def _pretty_print(pp)
-      pp.add_line "#{self.class}:"
+      pp.add_line "#{type}:"
 
       pp.with_indent_inc do
         pp.add_line "targetlist"
         pp.with_indent_inc do
           targetlist.each do |t|
             t._pretty_print(pp)
+          end
+        end
+      end
+
+      pp.with_indent_inc do
+        pp.add_line "qual"
+        pp.with_indent_inc do
+          qual.each do |q|
+            q._pretty_print(pp)
           end
         end
       end

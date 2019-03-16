@@ -226,6 +226,31 @@ psql_inspect_plan_targetlist(mrb_state *mrb, mrb_value self)
     return ary;
 }
 
+static mrb_value
+psql_inspect_plan_qual(mrb_state *mrb, mrb_value self)
+{
+    Plan *plan;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    plan = (Plan *)DATA_PTR(self);
+    array_size = list_length(plan->qual);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, plan->qual) {
+        mrb_value v;
+        Node *node = (Node *) lfirst(lc);
+
+        v = psql_inspect_node_build_from_node(mrb, node);
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
 /* input plan tree(s) */
 static mrb_value
 psql_inspect_plan_lefttree(mrb_state *mrb, mrb_value self)
@@ -266,6 +291,7 @@ psql_inspect_plan_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, plan_class, "initialize", psql_inspect_plan_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "type", psql_inspect_plan_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "targetlist", psql_inspect_plan_targetlist, MRB_ARGS_NONE());
+    mrb_define_method(mrb, plan_class, "qual", psql_inspect_plan_qual, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "lefttree", psql_inspect_plan_lefttree, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_class, "righttree", psql_inspect_plan_righttree, MRB_ARGS_NONE());
 
