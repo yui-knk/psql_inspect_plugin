@@ -75,6 +75,12 @@ class PgInspect
     end
   end
 
+  class A_Const < Node
+    def _pretty_print(pp)
+      pp.add_line "A_Const: val: #{val}"
+    end
+  end
+
   class SelectStmt < Node
     def _pretty_print(pp)
       pp.add_line "SelectStmt:"

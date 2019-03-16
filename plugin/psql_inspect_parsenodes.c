@@ -14,10 +14,12 @@
 static struct RClass *raw_stmt_class = NULL;
 static struct RClass *select_stmt_class = NULL;
 static struct RClass *a_expr_class = NULL;
+static struct RClass *a_const_class = NULL;
 
 static const struct mrb_data_type psql_inspect_raw_stmt_data_type = { "RawStmt", mrb_free };
 static const struct mrb_data_type psql_inspect_select_stmt_data_type = { "SelectStmt", mrb_free };
 static const struct mrb_data_type psql_inspect_a_expr_data_type = { "A_Expr", mrb_free };
+static const struct mrb_data_type psql_inspect_a_const_data_type = { "A_Const", mrb_free };
 
 
 static mrb_value
@@ -44,6 +46,14 @@ psql_inspect_a_expr_init(mrb_state *mrb, mrb_value self)
     return self;
 }
 
+static mrb_value
+psql_inspect_a_const_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_a_const_data_type;
+
+    return self;
+}
+
 mrb_value
 psql_inspect_parsenode_build_from_node(mrb_state *mrb, Node *node)
 {
@@ -58,6 +68,9 @@ psql_inspect_parsenode_build_from_node(mrb_state *mrb, Node *node)
         break;
       case T_A_Expr:
         val = mrb_class_new_instance(mrb, 0, NULL, a_expr_class);
+        break;
+      case T_A_Const:
+        val = mrb_class_new_instance(mrb, 0, NULL, a_const_class);
         break;
       default:
         val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
@@ -155,6 +168,23 @@ psql_inspect_a_expr_kind(mrb_state *mrb, mrb_value self)
     return psql_inspect_mrb_str_from_A_Expr_Kind(mrb, expr->kind);
 }
 
+/* See: "nodes/value.h" and "nodes/value.c" */
+static mrb_value
+psql_inspect_value_to_mrb_value(mrb_state *mrb, Value *val)
+{
+    switch (val->type) {
+      case T_Integer:
+        return mrb_fixnum_value(intVal(val));
+      case T_Float:
+        return mrb_float_value(mrb, floatVal(val));
+      case T_String: /* fallthrough */
+      case T_BitString:
+        return mrb_str_new_cstr(mrb, strVal(val));
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown Value node tag number: %S", mrb_fixnum_value(val->type));
+    }
+}
+
 static mrb_value
 psql_inspect_a_expr_name(mrb_state *mrb, mrb_value self)
 {
@@ -172,7 +202,7 @@ psql_inspect_a_expr_name(mrb_state *mrb, mrb_value self)
         mrb_value v;
         Value *val = (Value *) lfirst(lc);
 
-        v = mrb_str_new_cstr(mrb, strVal(val));
+        v = psql_inspect_value_to_mrb_value(mrb, val);
         mrb_ary_set(mrb, ary, i, v);
         i++;
     }
@@ -217,12 +247,32 @@ psql_inspect_a_expr_location(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(expr->location);
 }
 
+static mrb_value
+psql_inspect_a_const_val(mrb_state *mrb, mrb_value self)
+{
+    A_Const *con;
+
+    con = (A_Const *)DATA_PTR(self);
+    return psql_inspect_value_to_mrb_value(mrb, &con->val);
+}
+
+static mrb_value
+psql_inspect_a_const_location(mrb_state *mrb, mrb_value self)
+{
+    A_Const *con;
+
+    con = (A_Const *)DATA_PTR(self);
+    return mrb_fixnum_value(con->location);
+}
+
 
 void
 psql_inspect_parsenodes_fini(mrb_state *mrb)
 {
     raw_stmt_class = NULL;
     select_stmt_class = NULL;
+    a_expr_class = NULL;
+    a_const_class = NULL;
 }
 
 void
@@ -251,4 +301,11 @@ psql_inspect_parsenodes_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, a_expr_class, "lexpr", psql_inspect_a_expr_lexpr, MRB_ARGS_NONE());
     mrb_define_method(mrb, a_expr_class, "rexpr", psql_inspect_a_expr_rexpr, MRB_ARGS_NONE());
     mrb_define_method(mrb, a_expr_class, "location", psql_inspect_a_expr_location, MRB_ARGS_NONE());
+
+    /* A_Const class */
+    a_const_class = mrb_define_class_under(mrb, class, "A_Const", psql_inspect_node_class);
+    MRB_SET_INSTANCE_TT(a_const_class, MRB_TT_DATA);
+    mrb_define_method(mrb, a_const_class, "initialize", psql_inspect_a_const_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, a_const_class, "val", psql_inspect_a_const_val, MRB_ARGS_NONE());
+    mrb_define_method(mrb, a_const_class, "location", psql_inspect_a_const_location, MRB_ARGS_NONE());
 }
