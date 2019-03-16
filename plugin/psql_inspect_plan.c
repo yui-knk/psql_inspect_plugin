@@ -7,9 +7,9 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 
-#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_plan.h>
+#include <psql_inspect_primnodes.h>
 
 static struct RClass *plan_class = NULL;
 static struct RClass *agg_class = NULL;
@@ -218,7 +218,7 @@ psql_inspect_plan_targetlist(mrb_state *mrb, mrb_value self)
         mrb_value v;
         TargetEntry *tle = (TargetEntry *) lfirst(lc);
 
-        v = psql_inspect_expr_build_from_expr(mrb, (Expr *)tle);
+        v = psql_inspect_primnode_build_from_expr(mrb, (Expr *)tle);
         mrb_ary_set(mrb, ary, i, v);
         i++;
     }

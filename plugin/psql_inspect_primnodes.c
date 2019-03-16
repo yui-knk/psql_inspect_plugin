@@ -8,8 +8,8 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 
-#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
+#include <psql_inspect_primnodes.h>
 
 static struct RClass *expr_class = NULL;
 static struct RClass *relabel_type_class = NULL;
@@ -26,12 +26,6 @@ static const struct mrb_data_type psql_inspect_aggref_data_type = { "Aggref", mr
 static const struct mrb_data_type psql_inspect_const_data_type = { "Const", mrb_free };
 static const struct mrb_data_type psql_inspect_op_expr_type = { "OpExpr", mrb_free };
 static const struct mrb_data_type psql_inspect_target_entry_data_type = { "TargetEntry", mrb_free };
-
-static void
-psql_inspect_expr_set_expr(mrb_state *mrb, mrb_value self, Expr *expr)
-{
-    DATA_PTR(self) = expr;
-}
 
 static mrb_value
 psql_inspect_expr_init(mrb_state *mrb, mrb_value self)
@@ -90,7 +84,7 @@ psql_inspect_aggref_args(mrb_state *mrb, mrb_value self)
         mrb_value v;
         TargetEntry *tle = (TargetEntry *) lfirst(lc);
 
-        v = psql_inspect_expr_build_from_expr(mrb, (Expr *)tle);
+        v = psql_inspect_primnode_build_from_expr(mrb, (Expr *)tle);
         mrb_ary_set(mrb, ary, i, v);
         i++;
     }
@@ -221,7 +215,7 @@ psql_inspect_op_expr_args(mrb_state *mrb, mrb_value self)
         mrb_value v;
         Expr *arg = (Expr *) lfirst(lc);
 
-        v = psql_inspect_expr_build_from_expr(mrb, arg);
+        v = psql_inspect_primnode_build_from_expr(mrb, arg);
         mrb_ary_set(mrb, ary, i, v);
         i++;
     }
@@ -235,7 +229,7 @@ psql_inspect_target_entry_expr(mrb_state *mrb, mrb_value self)
     TargetEntry *tle;
 
     tle = (TargetEntry *)DATA_PTR(self);
-    return psql_inspect_expr_build_from_expr(mrb, tle->expr);
+    return psql_inspect_primnode_build_from_expr(mrb, tle->expr);
  }
 
 static mrb_value
@@ -266,11 +260,11 @@ psql_inspect_target_entry_resjunk(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-psql_inspect_expr_build_from_expr(mrb_state *mrb, Expr *expr)
+psql_inspect_primnode_build_from_node(mrb_state *mrb, Node *node)
 {
     mrb_value val;
 
-    switch (expr->type) {
+    switch (node->type) {
       case T_RelabelType:
         val = mrb_class_new_instance(mrb, 0, NULL, relabel_type_class);
         break;
@@ -290,10 +284,33 @@ psql_inspect_expr_build_from_expr(mrb_state *mrb, Expr *expr)
         val = mrb_class_new_instance(mrb, 0, NULL, target_entry_class);
         break;
       default:
-        val = mrb_class_new_instance(mrb, 0, NULL, expr_class);
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
     }
 
-    psql_inspect_expr_set_expr(mrb, val, expr);
+    DATA_PTR(val) = node;
+
+    return val;
+}
+
+mrb_value
+psql_inspect_primnode_build_from_expr(mrb_state *mrb, Expr *expr)
+{
+    mrb_value val;
+
+    switch (expr->type) {
+      case T_RelabelType:
+      case T_Var:
+      case T_Const:
+      case T_OpExpr:
+      case T_Aggref:
+      case T_TargetEntry:
+        val = psql_inspect_primnode_build_from_node(mrb, (Node *)expr);
+        break;
+      default:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+    }
+
+    DATA_PTR(val) = expr;
 
     return val;
 }
@@ -313,7 +330,7 @@ psql_inspect_relabel_type_arg(mrb_state *mrb, mrb_value self)
     RelabelType *relt;
 
     relt = (RelabelType *)DATA_PTR(self);
-    return psql_inspect_expr_build_from_expr(mrb, relt->arg);
+    return psql_inspect_primnode_build_from_expr(mrb, relt->arg);
 }
 
 static mrb_value
@@ -335,7 +352,20 @@ psql_inspect_var_varattno(mrb_state *mrb, mrb_value self)
 }
 
 void
-psql_inspect_expr_class_init(mrb_state *mrb, struct RClass *class)
+psql_inspect_primnodes_fini(mrb_state *mrb)
+{
+    relabel_type_class = NULL;
+    var_class = NULL;
+    aggref_class = NULL;
+    const_class = NULL;
+    op_expr_class = NULL;
+    target_entry_class = NULL;
+
+    expr_class = NULL;
+}
+
+void
+psql_inspect_primnodes_class_init(mrb_state *mrb, struct RClass *class)
 {
     /* Expr is base class */
     expr_class = mrb_define_class_under(mrb, class, "Expr", mrb->object_class);

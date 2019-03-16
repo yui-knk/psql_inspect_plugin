@@ -12,7 +12,6 @@
 #include <mruby/string.h>
 
 #include <psql_inspect_bitmapset.h>
-#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_parse_state.h>
 #include <psql_inspect_path.h>
@@ -20,6 +19,7 @@
 #include <psql_inspect_plan.h>
 #include <psql_inspect_planned_stmt.h>
 #include <psql_inspect_planner_info.h>
+#include <psql_inspect_primnodes.h>
 #include <psql_inspect_query.h>
 #include <psql_inspect_query_desc.h>
 #include <psql_inspect_rel_opt_info.h>
@@ -210,11 +210,11 @@ psql_inspect_class_init(mrb_state *mrb)
     psql_inspect_rel_opt_info_class_init(mrb, class);
     psql_inspect_path_class_init(mrb, class);
     psql_inspect_path_key_class_init(mrb, class);
-    psql_inspect_expr_class_init(mrb, class);
     psql_inspect_plan_class_init(mrb, class);
     psql_inspect_query_class_init(mrb, class);
     psql_inspect_query_desc_class_init(mrb, class);
     psql_inspect_parse_state_class_init(mrb, class);
+    psql_inspect_primnodes_class_init(mrb, class);
 }
 
 /*
@@ -271,6 +271,7 @@ _PG_fini(void)
     }
 
     if (mrb_s != NULL) {
+        psql_inspect_primnodes_fini(mrb_s);
         psql_inspect_parse_state_fini(mrb_s);
         psql_inspect_planned_stmt_fini(mrb_s);
         psql_inspect_planner_info_fini(mrb_s);

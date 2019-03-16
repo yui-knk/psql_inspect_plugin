@@ -9,7 +9,7 @@
 #include <mruby/data.h>
 
 #include <psql_inspect_bitmapset.h>
-#include <psql_inspect_expr.h>
+#include <psql_inspect_primnodes.h>
 #include <psql_inspect_nodes.h>
 #include <psql_inspect_path_key.h>
 
@@ -205,7 +205,7 @@ psql_inspect_equivalence_member_em_expr(mrb_state *mrb, mrb_value self)
     EquivalenceMember *em;
 
     em = (EquivalenceMember *)DATA_PTR(self);
-    return psql_inspect_expr_build_from_expr(mrb, em->em_expr);
+    return psql_inspect_primnode_build_from_expr(mrb, em->em_expr);
 }
 
 static mrb_value

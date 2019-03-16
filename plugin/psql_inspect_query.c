@@ -8,8 +8,8 @@
 #include <mruby/data.h>
 #include <mruby/variable.h>
 
-#include <psql_inspect_expr.h>
 #include <psql_inspect_nodes.h>
+#include <psql_inspect_primnodes.h>
 #include <psql_inspect_query.h>
 
 static struct RClass *query_class = NULL;
@@ -231,7 +231,7 @@ psql_inspect_query_target_list(mrb_state *mrb, mrb_value self)
         mrb_value v;
         TargetEntry *tle = (TargetEntry *) lfirst(lc);
 
-        v = psql_inspect_expr_build_from_expr(mrb, (Expr *)tle);
+        v = psql_inspect_primnode_build_from_expr(mrb, (Expr *)tle);
         mrb_ary_set(mrb, ary, i, v);
         i++;
     }
@@ -248,7 +248,7 @@ psql_inspect_from_expr_quals(mrb_state *mrb, mrb_value self)
 
     if (from->quals == NULL)
         return mrb_nil_value();
-    return psql_inspect_expr_build_from_expr(mrb, (Expr *)from->quals);
+    return psql_inspect_primnode_build_from_expr(mrb, (Expr *)from->quals);
 }
 
 void
