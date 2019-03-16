@@ -22,6 +22,7 @@ OBJS=$(BUILD_DIR)/psql_inspect.o \
      $(BUILD_DIR)/psql_inspect_plan.o \
      $(BUILD_DIR)/psql_inspect_planned_stmt.o \
      $(BUILD_DIR)/psql_inspect_planner_info.o \
+     $(BUILD_DIR)/psql_inspect_primnodes.o \
      $(BUILD_DIR)/psql_inspect_query.o \
      $(BUILD_DIR)/psql_inspect_query_desc.o \
      $(BUILD_DIR)/psql_inspect_rel_opt_info.o
