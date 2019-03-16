@@ -81,6 +81,12 @@ class PgInspect
     end
   end
 
+  class ColumnRef < Node
+    def _pretty_print(pp)
+      pp.add_line "ColumnRef: fields: #{fields.join(', ')}"
+    end
+  end
+
   class SelectStmt < Node
     def _pretty_print(pp)
       pp.add_line "SelectStmt:"

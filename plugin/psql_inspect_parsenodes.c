@@ -15,11 +15,13 @@ static struct RClass *raw_stmt_class = NULL;
 static struct RClass *select_stmt_class = NULL;
 static struct RClass *a_expr_class = NULL;
 static struct RClass *a_const_class = NULL;
+static struct RClass *column_ref_class = NULL;
 
 static const struct mrb_data_type psql_inspect_raw_stmt_data_type = { "RawStmt", mrb_free };
 static const struct mrb_data_type psql_inspect_select_stmt_data_type = { "SelectStmt", mrb_free };
 static const struct mrb_data_type psql_inspect_a_expr_data_type = { "A_Expr", mrb_free };
 static const struct mrb_data_type psql_inspect_a_const_data_type = { "A_Const", mrb_free };
+static const struct mrb_data_type psql_inspect_column_ref_data_type = { "ColumnRef", mrb_free };
 
 
 static mrb_value
@@ -54,6 +56,14 @@ psql_inspect_a_const_init(mrb_state *mrb, mrb_value self)
     return self;
 }
 
+static mrb_value
+psql_inspect_column_ref_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_column_ref_data_type;
+
+    return self;
+}
+
 mrb_value
 psql_inspect_parsenode_build_from_node(mrb_state *mrb, Node *node)
 {
@@ -71,6 +81,9 @@ psql_inspect_parsenode_build_from_node(mrb_state *mrb, Node *node)
         break;
       case T_A_Const:
         val = mrb_class_new_instance(mrb, 0, NULL, a_const_class);
+        break;
+      case T_ColumnRef:
+        val = mrb_class_new_instance(mrb, 0, NULL, column_ref_class);
         break;
       default:
         val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
@@ -265,6 +278,45 @@ psql_inspect_a_const_location(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(con->location);
 }
 
+static mrb_value
+psql_inspect_column_ref_fields(mrb_state *mrb, mrb_value self)
+{
+    ColumnRef *cref;
+    int array_size;
+    int i = 0;
+    mrb_value ary;
+    ListCell *lc;
+
+    cref = (ColumnRef *)DATA_PTR(self);
+    array_size = list_length(cref->fields);
+    ary = mrb_ary_new_capa(mrb, array_size);
+
+    foreach(lc, cref->fields) {
+        mrb_value v;
+        Node *node = (Node *) lfirst(lc);
+
+        if (node->type == T_A_Star) {
+            v = mrb_str_new_lit(mrb, "*");
+        }
+        else {
+            v = psql_inspect_value_to_mrb_value(mrb, (Value *)node);
+        }
+
+        mrb_ary_set(mrb, ary, i, v);
+        i++;
+    }
+
+    return ary;
+}
+
+static mrb_value
+psql_inspect_column_ref_location(mrb_state *mrb, mrb_value self)
+{
+    ColumnRef *cref;
+
+    cref = (ColumnRef *)DATA_PTR(self);
+    return mrb_fixnum_value(cref->location);
+}
 
 void
 psql_inspect_parsenodes_fini(mrb_state *mrb)
@@ -308,4 +360,11 @@ psql_inspect_parsenodes_class_init(mrb_state *mrb, struct RClass *class)
     mrb_define_method(mrb, a_const_class, "initialize", psql_inspect_a_const_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, a_const_class, "val", psql_inspect_a_const_val, MRB_ARGS_NONE());
     mrb_define_method(mrb, a_const_class, "location", psql_inspect_a_const_location, MRB_ARGS_NONE());
+
+    /* ColumnRef class */
+    column_ref_class = mrb_define_class_under(mrb, class, "ColumnRef", psql_inspect_node_class);
+    MRB_SET_INSTANCE_TT(column_ref_class, MRB_TT_DATA);
+    mrb_define_method(mrb, column_ref_class, "initialize", psql_inspect_column_ref_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, column_ref_class, "fields", psql_inspect_column_ref_fields, MRB_ARGS_NONE());
+    mrb_define_method(mrb, column_ref_class, "location", psql_inspect_column_ref_location, MRB_ARGS_NONE());
 }
