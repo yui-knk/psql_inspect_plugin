@@ -51,6 +51,30 @@ class PgInspect
     end
   end
 
+  class A_Expr < Node
+    def _pretty_print(pp)
+      pp.add_line "A_Expr: kind: #{kind}, name: #{name.join(', ')}"
+
+      if lexpr
+        pp.with_indent_inc do
+          pp.add_line "lexpr"
+          pp.with_indent_inc do
+            lexpr._pretty_print(pp)
+          end
+        end
+      end
+
+      if rexpr
+        pp.with_indent_inc do
+          pp.add_line "rexpr"
+          pp.with_indent_inc do
+            rexpr._pretty_print(pp)
+          end
+        end
+      end
+    end
+  end
+
   class SelectStmt < Node
     def _pretty_print(pp)
       pp.add_line "SelectStmt:"

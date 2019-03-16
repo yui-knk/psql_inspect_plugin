@@ -982,8 +982,7 @@ psql_inspect_node_build_from_node(mrb_state *mrb, Node *node)
       case T_PartitionRangeDatum:
       case T_PartitionCmd:
       case T_VacuumRelation:
-        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
-        DATA_PTR(val) = node;
+        val = psql_inspect_parsenode_build_from_node(mrb, node);
         break;
 
       /*
