@@ -6,6 +6,7 @@
 #include <mruby/data.h>
 
 #include <psql_inspect_nodes.h>
+#include <psql_inspect_primnodes.h>
 
 struct RClass *psql_inspect_node_class = NULL;
 static const struct mrb_data_type psql_inspect_node_data_type = { "Node", mrb_free };
@@ -679,8 +680,7 @@ psql_inspect_node_build_from_node(mrb_state *mrb, Node *node)
       case T_FromExpr:
       case T_OnConflictExpr:
       case T_IntoClause:
-        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
-        DATA_PTR(val) = node;
+        val = psql_inspect_primnode_build_from_node(mrb, node);
         break;
 
       /*
