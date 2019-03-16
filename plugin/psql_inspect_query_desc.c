@@ -1,4 +1,5 @@
 #include "postgres.h"
+#include "catalog/pg_attribute.h"
 #include "executor/execdesc.h"
 #include "executor/execExpr.h"
 #include "executor/nodeAgg.h"
@@ -28,6 +29,7 @@ static struct RClass *agg_state_class = NULL;
 
 static struct RClass *tuple_table_slot_class = NULL;
 static struct RClass *tuple_desc_class = NULL;
+static struct RClass *pg_attribute_class = NULL;
 
 static const struct mrb_data_type psql_inspect_query_desc_data_type = { "QueryDesc", mrb_free };
 
@@ -44,6 +46,7 @@ static const struct mrb_data_type psql_inspect_agg_state_data_type = { "AggState
 
 static const struct mrb_data_type psql_inspect_tuple_table_slot_data_type = { "TupleTableSlot", mrb_free };
 static const struct mrb_data_type psql_inspect_tuple_desc_data_type = { "TupleDesc", mrb_free };
+static const struct mrb_data_type psql_inspect_pg_attribute_data_type = { "PgAttribute", mrb_free };
 
 
 typedef struct ExprEvalStepData {
@@ -112,6 +115,17 @@ psql_inspect_ScanTupleSlot_build_from_ScanTupleSlot(mrb_state *mrb, TupleTableSl
 }
 
 static mrb_value
+psql_inspect_pg_attribute_build_from_pg_attribute(mrb_state *mrb, FormData_pg_attribute *attr)
+{
+    mrb_value val;
+
+    val = mrb_class_new_instance(mrb, 0, NULL, pg_attribute_class);
+    DATA_PTR(val) = attr;
+
+    return val;
+}
+
+static mrb_value
 psql_inspect_expr_eval_step_build_from_expr_eval_step(mrb_state *mrb, ExprEvalStep *step, ExprState *exprState)
 {
     mrb_value val;
@@ -159,6 +173,14 @@ static mrb_value
 psql_inspect_tuple_desc_init(mrb_state *mrb, mrb_value self)
 {
     DATA_TYPE(self) = &psql_inspect_tuple_desc_data_type;
+
+    return self;
+}
+
+static mrb_value
+psql_inspect_pg_attribute_init(mrb_state *mrb, mrb_value self)
+{
+    DATA_TYPE(self) = &psql_inspect_pg_attribute_data_type;
 
     return self;
 }
@@ -306,6 +328,34 @@ psql_inspect_tuple_desc_natts(mrb_state *mrb, mrb_value self)
 
     tupdesc = (TupleDesc)DATA_PTR(self);
     return mrb_fixnum_value(tupdesc->natts);
+}
+
+static mrb_value
+psql_inspect_tuple_desc_attrs(mrb_state *mrb, mrb_value self)
+{
+    TupleDesc tupdesc;
+    mrb_value ary;
+
+    tupdesc = (TupleDesc)DATA_PTR(self);
+    ary = mrb_ary_new_capa(mrb, tupdesc->natts);
+
+    for (int i = 0; i < tupdesc->natts; i++) {
+        mrb_value v;
+
+        v = psql_inspect_pg_attribute_build_from_pg_attribute(mrb, &tupdesc->attrs[i]);
+        mrb_ary_set(mrb, ary, i, v);
+    }
+
+    return ary;
+}
+
+static mrb_value
+psql_inspect_pg_attribute_attname(mrb_state *mrb, mrb_value self)
+{
+    FormData_pg_attribute *attr;
+
+    attr = (FormData_pg_attribute *)DATA_PTR(self);
+    return mrb_str_new_cstr(mrb, NameStr(attr->attname));
 }
 
 static mrb_value
@@ -811,6 +861,12 @@ psql_inspect_query_desc_class_init(mrb_state *mrb, struct RClass *class)
     tuple_desc_class = mrb_define_class_under(mrb, class, "TupleDesc", mrb->object_class);
     mrb_define_method(mrb, tuple_desc_class, "initialize", psql_inspect_tuple_desc_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, tuple_desc_class, "natts", psql_inspect_tuple_desc_natts, MRB_ARGS_NONE());
+    mrb_define_method(mrb, tuple_desc_class, "attrs", psql_inspect_tuple_desc_attrs, MRB_ARGS_NONE());
+
+    /* FormData_pg_attribute */
+    pg_attribute_class = mrb_define_class_under(mrb, class, "PgAttribute", mrb->object_class);
+    mrb_define_method(mrb, pg_attribute_class, "initialize", psql_inspect_pg_attribute_init, MRB_ARGS_NONE());
+    mrb_define_method(mrb, pg_attribute_class, "attname", psql_inspect_pg_attribute_attname, MRB_ARGS_NONE());
 
     /* ExprState */
     expr_state_class = mrb_define_class_under(mrb, class, "ExprState", mrb->object_class);
