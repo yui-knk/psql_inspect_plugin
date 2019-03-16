@@ -37,15 +37,6 @@ psql_inspect_planned_stmt_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-psql_inspect_planned_stmt_type(mrb_state *mrb, mrb_value self)
-{
-    PlannedStmt *stmt;
-
-    stmt = (PlannedStmt *)DATA_PTR(self);
-    return psql_inspect_mrb_str_from_NodeTag(mrb, stmt->type);
-}
-
-static mrb_value
 psql_inspect_planned_stmt_command_type(mrb_state *mrb, mrb_value self)
 {
     PlannedStmt *stmt;
@@ -113,12 +104,11 @@ psql_inspect_planned_stmt_fini(mrb_state *mrb)
 void
 psql_inspect_planned_stmt_class_init(mrb_state *mrb, struct RClass *class)
 {
-    class_stmt = mrb_define_class_under(mrb, class, "PlannedStmt", mrb->object_class);
+    class_stmt = mrb_define_class_under(mrb, class, "PlannedStmt", psql_inspect_node_class);
     MRB_SET_INSTANCE_TT(class_stmt, MRB_TT_DATA);
 
     mrb_define_class_method(mrb, class_stmt, "current_stmt", psql_inspect_c_current_stmt, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "initialize", psql_inspect_planned_stmt_init, MRB_ARGS_NONE());
-    mrb_define_method(mrb, class_stmt, "type", psql_inspect_planned_stmt_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "command_type", psql_inspect_planned_stmt_command_type, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "plan_tree", psql_inspect_planned_stmt_plan_tree, MRB_ARGS_NONE());
     mrb_define_method(mrb, class_stmt, "rtable", psql_inspect_planned_stmt_rtable, MRB_ARGS_NONE());
