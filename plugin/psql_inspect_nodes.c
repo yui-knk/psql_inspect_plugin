@@ -6,6 +6,7 @@
 #include <mruby/data.h>
 
 #include <psql_inspect_nodes.h>
+#include <psql_inspect_parsenodes.h>
 #include <psql_inspect_primnodes.h>
 
 struct RClass *psql_inspect_node_class = NULL;
@@ -923,8 +924,7 @@ psql_inspect_node_build_from_node(mrb_state *mrb, Node *node)
       case T_CreateStatsStmt:
       case T_AlterCollationStmt:
       case T_CallStmt:
-        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
-        DATA_PTR(val) = node;
+        val = psql_inspect_parsenode_build_from_node(mrb, node);
         break;
 
       /*
