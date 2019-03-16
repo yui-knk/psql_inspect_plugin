@@ -32,4 +32,28 @@ class PgInspect
       end
     end
   end
+
+  class SelectStmt < Node
+    def _pretty_print(pp)
+      pp.add_line "SelectStmt:"
+
+      pp.with_indent_inc do
+        pp.add_line "fromClause"
+        pp.with_indent_inc do
+          fromClause.each do |f|
+            f._pretty_print(pp)
+          end
+        end
+      end
+
+      if whereClause
+        pp.with_indent_inc do
+          pp.add_line "whereClause"
+          pp.with_indent_inc do
+            whereClause._pretty_print(pp)
+          end
+        end
+      end
+    end
+  end
 end
