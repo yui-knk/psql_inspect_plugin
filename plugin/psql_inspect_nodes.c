@@ -18,6 +18,7 @@ psql_inspect_node_init(mrb_state *mrb, mrb_value self)
     return self;
 }
 
+/* Make this to be static */
 mrb_value
 psql_inspect_mrb_str_from_NodeTag(mrb_state *mrb, NodeTag type)
 {
@@ -495,8 +496,535 @@ psql_inspect_node_build_from_node(mrb_state *mrb, Node *node)
 {
     mrb_value val;
 
-    val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
-    DATA_PTR(val) = node;
+    switch (node->type) {
+      case T_Invalid:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR EXECUTOR NODES (execnodes.h)
+       */
+      case T_IndexInfo:
+      case T_ExprContext:
+      case T_ProjectionInfo:
+      case T_JunkFilter:
+      case T_OnConflictSetState:
+      case T_ResultRelInfo:
+      case T_EState:
+      case T_TupleTableSlot:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR PLAN NODES (plannodes.h)
+       */
+      case T_Plan:
+      case T_Result:
+      case T_ProjectSet:
+      case T_ModifyTable:
+      case T_Append:
+      case T_MergeAppend:
+      case T_RecursiveUnion:
+      case T_BitmapAnd:
+      case T_BitmapOr:
+      case T_Scan:
+      case T_SeqScan:
+      case T_SampleScan:
+      case T_IndexScan:
+      case T_IndexOnlyScan:
+      case T_BitmapIndexScan:
+      case T_BitmapHeapScan:
+      case T_TidScan:
+      case T_SubqueryScan:
+      case T_FunctionScan:
+      case T_ValuesScan:
+      case T_TableFuncScan:
+      case T_CteScan:
+      case T_NamedTuplestoreScan:
+      case T_WorkTableScan:
+      case T_ForeignScan:
+      case T_CustomScan:
+      case T_Join:
+      case T_NestLoop:
+      case T_MergeJoin:
+      case T_HashJoin:
+      case T_Material:
+      case T_Sort:
+      case T_Group:
+      case T_Agg:
+      case T_WindowAgg:
+      case T_Unique:
+      case T_Gather:
+      case T_GatherMerge:
+      case T_Hash:
+      case T_SetOp:
+      case T_LockRows:
+      case T_Limit:
+      case T_NestLoopParam:
+      case T_PlanRowMark:
+      case T_PartitionPruneInfo:
+      case T_PartitionedRelPruneInfo:
+      case T_PartitionPruneStepOp:
+      case T_PartitionPruneStepCombine:
+      case T_PlanInvalItem:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR PLAN STATE NODES (execnodes.h)
+       *
+       * These should correspond one-to-one with Plan node types.
+       */
+      case T_PlanState:
+      case T_ResultState:
+      case T_ProjectSetState:
+      case T_ModifyTableState:
+      case T_AppendState:
+      case T_MergeAppendState:
+      case T_RecursiveUnionState:
+      case T_BitmapAndState:
+      case T_BitmapOrState:
+      case T_ScanState:
+      case T_SeqScanState:
+      case T_SampleScanState:
+      case T_IndexScanState:
+      case T_IndexOnlyScanState:
+      case T_BitmapIndexScanState:
+      case T_BitmapHeapScanState:
+      case T_TidScanState:
+      case T_SubqueryScanState:
+      case T_FunctionScanState:
+      case T_TableFuncScanState:
+      case T_ValuesScanState:
+      case T_CteScanState:
+      case T_NamedTuplestoreScanState:
+      case T_WorkTableScanState:
+      case T_ForeignScanState:
+      case T_CustomScanState:
+      case T_JoinState:
+      case T_NestLoopState:
+      case T_MergeJoinState:
+      case T_HashJoinState:
+      case T_MaterialState:
+      case T_SortState:
+      case T_GroupState:
+      case T_AggState:
+      case T_WindowAggState:
+      case T_UniqueState:
+      case T_GatherState:
+      case T_GatherMergeState:
+      case T_HashState:
+      case T_SetOpState:
+      case T_LockRowsState:
+      case T_LimitState:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR PRIMITIVE NODES (primnodes.h)
+       */
+      case T_Alias:
+      case T_RangeVar:
+      case T_TableFunc:
+      case T_Expr:
+      case T_Var:
+      case T_Const:
+      case T_Param:
+      case T_Aggref:
+      case T_GroupingFunc:
+      case T_WindowFunc:
+      case T_ArrayRef:
+      case T_FuncExpr:
+      case T_NamedArgExpr:
+      case T_OpExpr:
+      case T_DistinctExpr:
+      case T_NullIfExpr:
+      case T_ScalarArrayOpExpr:
+      case T_BoolExpr:
+      case T_SubLink:
+      case T_SubPlan:
+      case T_AlternativeSubPlan:
+      case T_FieldSelect:
+      case T_FieldStore:
+      case T_RelabelType:
+      case T_CoerceViaIO:
+      case T_ArrayCoerceExpr:
+      case T_ConvertRowtypeExpr:
+      case T_CollateExpr:
+      case T_CaseExpr:
+      case T_CaseWhen:
+      case T_CaseTestExpr:
+      case T_ArrayExpr:
+      case T_RowExpr:
+      case T_RowCompareExpr:
+      case T_CoalesceExpr:
+      case T_MinMaxExpr:
+      case T_SQLValueFunction:
+      case T_XmlExpr:
+      case T_NullTest:
+      case T_BooleanTest:
+      case T_CoerceToDomain:
+      case T_CoerceToDomainValue:
+      case T_SetToDefault:
+      case T_CurrentOfExpr:
+      case T_NextValueExpr:
+      case T_InferenceElem:
+      case T_TargetEntry:
+      case T_RangeTblRef:
+      case T_JoinExpr:
+      case T_FromExpr:
+      case T_OnConflictExpr:
+      case T_IntoClause:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR EXPRESSION STATE NODES (execnodes.h)
+       *
+       * ExprState represents the evaluation state for a whole expression tree.
+       * Most Expr-based plan nodes do not have a corresponding expression state
+       * node, they're fully handled within execExpr* - but sometimes the state
+       * needs to be shared with other parts of the executor, as for example
+       * with AggrefExprState, which nodeAgg.c has to modify.
+       */
+      case T_ExprState:
+      case T_AggrefExprState:
+      case T_WindowFuncExprState:
+      case T_SetExprState:
+      case T_SubPlanState:
+      case T_AlternativeSubPlanState:
+      case T_DomainConstraintState:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR PLANNER NODES (relation.h)
+       */
+      case T_PlannerInfo:
+      case T_PlannerGlobal:
+      case T_RelOptInfo:
+      case T_IndexOptInfo:
+      case T_ForeignKeyOptInfo:
+      case T_ParamPathInfo:
+      case T_Path:
+      case T_IndexPath:
+      case T_BitmapHeapPath:
+      case T_BitmapAndPath:
+      case T_BitmapOrPath:
+      case T_TidPath:
+      case T_SubqueryScanPath:
+      case T_ForeignPath:
+      case T_CustomPath:
+      case T_NestPath:
+      case T_MergePath:
+      case T_HashPath:
+      case T_AppendPath:
+      case T_MergeAppendPath:
+      case T_ResultPath:
+      case T_MaterialPath:
+      case T_UniquePath:
+      case T_GatherPath:
+      case T_GatherMergePath:
+      case T_ProjectionPath:
+      case T_ProjectSetPath:
+      case T_SortPath:
+      case T_GroupPath:
+      case T_UpperUniquePath:
+      case T_AggPath:
+      case T_GroupingSetsPath:
+      case T_MinMaxAggPath:
+      case T_WindowAggPath:
+      case T_SetOpPath:
+      case T_RecursiveUnionPath:
+      case T_LockRowsPath:
+      case T_ModifyTablePath:
+      case T_LimitPath:
+      /* these aren't subclasses of Path: */
+      case T_EquivalenceClass:
+      case T_EquivalenceMember:
+      case T_PathKey:
+      case T_PathTarget:
+      case T_RestrictInfo:
+      case T_PlaceHolderVar:
+      case T_SpecialJoinInfo:
+      case T_AppendRelInfo:
+      case T_PlaceHolderInfo:
+      case T_MinMaxAggInfo:
+      case T_PlannerParamItem:
+      case T_RollupData:
+      case T_GroupingSetData:
+      case T_StatisticExtInfo:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR MEMORY NODES (memnodes.h)
+       */
+      case T_MemoryContext:
+      case T_AllocSetContext:
+      case T_SlabContext:
+      case T_GenerationContext:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR VALUE NODES (value.h)
+       */
+      case T_Value:
+      case T_Integer:
+      case T_Float:
+      case T_String:
+      case T_BitString:
+      case T_Null:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR LIST NODES (pg_list.h)
+       */
+      case T_List:
+      case T_IntList:
+      case T_OidList:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR EXTENSIBLE NODES (extensible.h)
+       */
+      case T_ExtensibleNode:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR STATEMENT NODES (mostly in parsenodes.h)
+       */
+      case T_RawStmt:
+      case T_Query:
+      case T_PlannedStmt:
+      case T_InsertStmt:
+      case T_DeleteStmt:
+      case T_UpdateStmt:
+      case T_SelectStmt:
+      case T_AlterTableStmt:
+      case T_AlterTableCmd:
+      case T_AlterDomainStmt:
+      case T_SetOperationStmt:
+      case T_GrantStmt:
+      case T_GrantRoleStmt:
+      case T_AlterDefaultPrivilegesStmt:
+      case T_ClosePortalStmt:
+      case T_ClusterStmt:
+      case T_CopyStmt:
+      case T_CreateStmt:
+      case T_DefineStmt:
+      case T_DropStmt:
+      case T_TruncateStmt:
+      case T_CommentStmt:
+      case T_FetchStmt:
+      case T_IndexStmt:
+      case T_CreateFunctionStmt:
+      case T_AlterFunctionStmt:
+      case T_DoStmt:
+      case T_RenameStmt:
+      case T_RuleStmt:
+      case T_NotifyStmt:
+      case T_ListenStmt:
+      case T_UnlistenStmt:
+      case T_TransactionStmt:
+      case T_ViewStmt:
+      case T_LoadStmt:
+      case T_CreateDomainStmt:
+      case T_CreatedbStmt:
+      case T_DropdbStmt:
+      case T_VacuumStmt:
+      case T_ExplainStmt:
+      case T_CreateTableAsStmt:
+      case T_CreateSeqStmt:
+      case T_AlterSeqStmt:
+      case T_VariableSetStmt:
+      case T_VariableShowStmt:
+      case T_DiscardStmt:
+      case T_CreateTrigStmt:
+      case T_CreatePLangStmt:
+      case T_CreateRoleStmt:
+      case T_AlterRoleStmt:
+      case T_DropRoleStmt:
+      case T_LockStmt:
+      case T_ConstraintsSetStmt:
+      case T_ReindexStmt:
+      case T_CheckPointStmt:
+      case T_CreateSchemaStmt:
+      case T_AlterDatabaseStmt:
+      case T_AlterDatabaseSetStmt:
+      case T_AlterRoleSetStmt:
+      case T_CreateConversionStmt:
+      case T_CreateCastStmt:
+      case T_CreateOpClassStmt:
+      case T_CreateOpFamilyStmt:
+      case T_AlterOpFamilyStmt:
+      case T_PrepareStmt:
+      case T_ExecuteStmt:
+      case T_DeallocateStmt:
+      case T_DeclareCursorStmt:
+      case T_CreateTableSpaceStmt:
+      case T_DropTableSpaceStmt:
+      case T_AlterObjectDependsStmt:
+      case T_AlterObjectSchemaStmt:
+      case T_AlterOwnerStmt:
+      case T_AlterOperatorStmt:
+      case T_DropOwnedStmt:
+      case T_ReassignOwnedStmt:
+      case T_CompositeTypeStmt:
+      case T_CreateEnumStmt:
+      case T_CreateRangeStmt:
+      case T_AlterEnumStmt:
+      case T_AlterTSDictionaryStmt:
+      case T_AlterTSConfigurationStmt:
+      case T_CreateFdwStmt:
+      case T_AlterFdwStmt:
+      case T_CreateForeignServerStmt:
+      case T_AlterForeignServerStmt:
+      case T_CreateUserMappingStmt:
+      case T_AlterUserMappingStmt:
+      case T_DropUserMappingStmt:
+      case T_AlterTableSpaceOptionsStmt:
+      case T_AlterTableMoveAllStmt:
+      case T_SecLabelStmt:
+      case T_CreateForeignTableStmt:
+      case T_ImportForeignSchemaStmt:
+      case T_CreateExtensionStmt:
+      case T_AlterExtensionStmt:
+      case T_AlterExtensionContentsStmt:
+      case T_CreateEventTrigStmt:
+      case T_AlterEventTrigStmt:
+      case T_RefreshMatViewStmt:
+      case T_ReplicaIdentityStmt:
+      case T_AlterSystemStmt:
+      case T_CreatePolicyStmt:
+      case T_AlterPolicyStmt:
+      case T_CreateTransformStmt:
+      case T_CreateAmStmt:
+      case T_CreatePublicationStmt:
+      case T_AlterPublicationStmt:
+      case T_CreateSubscriptionStmt:
+      case T_AlterSubscriptionStmt:
+      case T_DropSubscriptionStmt:
+      case T_CreateStatsStmt:
+      case T_AlterCollationStmt:
+      case T_CallStmt:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR PARSE TREE NODES (parsenodes.h)
+       */
+      case T_A_Expr:
+      case T_ColumnRef:
+      case T_ParamRef:
+      case T_A_Const:
+      case T_FuncCall:
+      case T_A_Star:
+      case T_A_Indices:
+      case T_A_Indirection:
+      case T_A_ArrayExpr:
+      case T_ResTarget:
+      case T_MultiAssignRef:
+      case T_TypeCast:
+      case T_CollateClause:
+      case T_SortBy:
+      case T_WindowDef:
+      case T_RangeSubselect:
+      case T_RangeFunction:
+      case T_RangeTableSample:
+      case T_RangeTableFunc:
+      case T_RangeTableFuncCol:
+      case T_TypeName:
+      case T_ColumnDef:
+      case T_IndexElem:
+      case T_Constraint:
+      case T_DefElem:
+      case T_RangeTblEntry:
+      case T_RangeTblFunction:
+      case T_TableSampleClause:
+      case T_WithCheckOption:
+      case T_SortGroupClause:
+      case T_GroupingSet:
+      case T_WindowClause:
+      case T_ObjectWithArgs:
+      case T_AccessPriv:
+      case T_CreateOpClassItem:
+      case T_TableLikeClause:
+      case T_FunctionParameter:
+      case T_LockingClause:
+      case T_RowMarkClause:
+      case T_XmlSerialize:
+      case T_WithClause:
+      case T_InferClause:
+      case T_OnConflictClause:
+      case T_CommonTableExpr:
+      case T_RoleSpec:
+      case T_TriggerTransition:
+      case T_PartitionElem:
+      case T_PartitionSpec:
+      case T_PartitionBoundSpec:
+      case T_PartitionRangeDatum:
+      case T_PartitionCmd:
+      case T_VacuumRelation:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR REPLICATION GRAMMAR PARSE NODES (replnodes.h)
+       */
+      case T_IdentifySystemCmd:
+      case T_BaseBackupCmd:
+      case T_CreateReplicationSlotCmd:
+      case T_DropReplicationSlotCmd:
+      case T_StartReplicationCmd:
+      case T_TimeLineHistoryCmd:
+      case T_SQLCmd:
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+
+      /*
+       * TAGS FOR RANDOM OTHER STUFF
+       *
+       * These are objects that aren't part of parse/plan/execute node tree
+       * structures, but we give them NodeTags anyway for identification
+       * purposes (usually because they are involved in APIs where we want to
+       * pass multiple object types through the same pointer).
+       */
+      case T_TriggerData:         /* in commands/trigger.h */
+      case T_EventTriggerData:    /* in commands/event_trigger.h */
+      case T_ReturnSetInfo:       /* in nodes/execnodes.h */
+      case T_WindowObjectData:    /* private in nodeWindowAgg.c */
+      case T_TIDBitmap:           /* in nodes/tidbitmap.h */
+      case T_InlineCodeBlock:     /* in nodes/parsenodes.h */
+      case T_FdwRoutine:          /* in foreign/fdwapi.h */
+      case T_IndexAmRoutine:      /* in access/amapi.h */
+      case T_TsmRoutine:          /* in access/tsmapi.h */
+      case T_ForeignKeyCacheInfo: /* in utils/rel.h */
+      case T_CallContext:         /* in nodes/parsenodes.h */
+        val = mrb_class_new_instance(mrb, 0, NULL, psql_inspect_node_class);
+        DATA_PTR(val) = node;
+        break;
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "Unknown node tag number: %S", mrb_fixnum_value(node->type));
+    }
 
     return val;
 }
