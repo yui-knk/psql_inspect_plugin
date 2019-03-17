@@ -47,6 +47,13 @@ class PgInspect
       pp.add_line "SeqScanState:"
 
       pp.with_indent_inc do
+        pp.add_line "qual"
+        pp.with_indent_inc do
+          qual._pretty_print(pp)
+        end
+      end
+
+      pp.with_indent_inc do
         pp.add_line "ss_ScanTupleSlot"
         pp.with_indent_inc do
           ss_ScanTupleSlot._pretty_print(pp)

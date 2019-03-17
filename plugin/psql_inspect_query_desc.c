@@ -54,6 +54,8 @@ typedef struct ExprEvalStepData {
     ExprEvalStep *step;
 } ExprEvalStepData_t;
 
+static mrb_value psql_inspect_expr_state_build_from_expr_state(mrb_state *mrb, ExprState *exprState);
+
 static void
 psql_inspect_planstate_set_planstate(mrb_state *mrb, mrb_value self, PlanState *planstate)
 {
@@ -389,10 +391,24 @@ psql_inspect_expr_state_steps(mrb_state *mrb, mrb_value self)
 static mrb_value
 psql_inspect_plan_state_type(mrb_state *mrb, mrb_value self)
 {
-    Plan *plan;
+    PlanState *planstate;
 
-    plan = (Plan *)DATA_PTR(self);
-    return psql_inspect_mrb_str_from_NodeTag(mrb, plan->type);
+    planstate = (PlanState *)DATA_PTR(self);
+    return psql_inspect_mrb_str_from_NodeTag(mrb, planstate->type);
+}
+
+static mrb_value
+psql_inspect_plan_state_qual(mrb_state *mrb, mrb_value self)
+{
+    PlanState *planstate;
+
+    planstate = (PlanState *)DATA_PTR(self);
+
+    if (planstate->qual == NULL) {
+        return mrb_nil_value();
+    }
+
+    return psql_inspect_expr_state_build_from_expr_state(mrb, planstate->qual);
 }
 
 static mrb_value
@@ -882,6 +898,7 @@ psql_inspect_query_desc_class_init(mrb_state *mrb, struct RClass *class)
 
     mrb_define_method(mrb, plan_state_class, "initialize", psql_inspect_plan_state_init, MRB_ARGS_NONE());
     mrb_define_method(mrb, plan_state_class, "type", psql_inspect_plan_state_type, MRB_ARGS_NONE());
+    mrb_define_method(mrb, plan_state_class, "qual", psql_inspect_plan_state_qual, MRB_ARGS_NONE());
 
     /* ScanState */
     scan_state_class = mrb_define_class_under(mrb, class, "ScanState", plan_state_class);
