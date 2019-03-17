@@ -3,6 +3,10 @@ class PgInspect
     def _pretty_print(pp)
       pp.add_line "#{type}:"
 
+      _pp_common(pp)
+    end
+
+    def _pp_common(pp)
       pp.with_indent_inc do
         pp.add_line "targetlist"
         pp.with_indent_inc do
@@ -23,7 +27,7 @@ class PgInspect
 
       if lefttree
         pp.with_indent_inc do
-          pp.add_line "left"
+          pp.add_line "lefttree"
           pp.with_indent_inc do
             lefttree._pretty_print(pp)
           end
@@ -32,7 +36,7 @@ class PgInspect
 
       if righttree
         pp.with_indent_inc do
-          pp.add_line "right"
+          pp.add_line "righttree"
           pp.with_indent_inc do
             righttree._pretty_print(pp)
           end
@@ -48,5 +52,10 @@ class PgInspect
   end
 
   class Sort < Plan
+    def _pretty_print(pp)
+      pp.add_line "Sort: num_cols: #{num_cols}, sort_col_idx: #{sort_col_idx}, sort_operators: #{sort_operators}"
+
+      _pp_common(pp)
+    end
   end
 end
