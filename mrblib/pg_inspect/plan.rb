@@ -46,6 +46,20 @@ class PgInspect
   end
 
   class Agg < Plan
+    def _pretty_print(pp)
+      pp.add_line "Agg: aggstrategy: #{aggstrategy}, num_cols: #{num_cols}, grp_col_idx: #{grp_col_idx}"
+
+      _pp_common(pp)
+
+      pp.with_indent_inc do
+        pp.add_line "chain"
+        pp.with_indent_inc do
+          chain.each do |c|
+            c._pretty_print(pp)
+          end
+        end
+      end
+    end
   end
 
   class SeqScan < Plan
